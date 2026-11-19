@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b6e4f" />
+<title>貯存系統 AI 法規客服</title>
+<style>
+  :root{
+    --brand:#0b6e4f; --brand-2:#13906a; --brand-soft:#e6f4ee;
+    --gov:#1f4e8c;   --gov-2:#2d6bc0;   --gov-soft:#e8f0fb;
+    --bg:#eef2f1; --card:#ffffff; --text:#1d2a26; --muted:#5f6f6a;
+    --border:#d9e2df; --warn:#a15c00; --warn-soft:#fff4e0; --err:#b3261e;
+    --radius:16px;
+  }
+  body.agency{ --brand:var(--gov); --brand-2:var(--gov-2); --brand-soft:var(--gov-soft); }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; }
+  body{ font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif; font-size:16px; line-height:1.65; color:var(--text); background:var(--bg); }
+  .app{ width:100%; height:100dvh; display:flex; flex-direction:column; background:var(--bg); }
+
+  /* ---------- 頂部綠色區塊 ---------- */
+  header{
+    background:linear-gradient(135deg,var(--brand),var(--brand-2)); color:#fff;
+    padding:calc(10px + env(safe-area-inset-top)) 12px 10px; box-shadow:0 2px 8px rgba(0,0,0,.15); z-index:5;
+    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+    grid-template-areas:"brand contact" "notice notice" "switch switch"; column-gap:10px; row-gap:8px; align-items:start;
+  }
+  .brand{ grid-area:brand; display:flex; align-items:flex-start; gap:8px; min-width:0; }
+  .logo{ width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.2); display:grid; place-items:center; font-size:19px; flex-shrink:0; }
+  .title{ flex:1; min-width:0; }
+  .title h1{ font-size:16px; margin:0; font-weight:700; line-height:1.35; }
+  .title p{ margin:2px 0 0; font-size:12px; opacity:.92; }
+  .status-dot{ display:inline-block; width:7px; height:7px; border-radius:50%; background:#7dffb3; margin-right:4px; vertical-align:middle; }
+  .user-line{ display:none; margin-top:3px; font-size:11.5px; }
+  body.agency .user-line{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .hbtn{ border:1px solid rgba(255,255,255,.7); background:transparent; color:#fff; font:inherit; font-size:11px; padding:1px 8px; border-radius:999px; cursor:pointer; }
+  .hbtn.stats{ background:#fff; color:var(--gov); border-color:#fff; font-weight:700; }
+  .hbtn:focus-visible{ outline:2px solid #fff; outline-offset:1px; }
+
+  .hdr-notice{ grid-area:notice; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.22); border-radius:10px; padding:5px 10px; font-size:12px; line-height:1.55; }
+  .hdr-notice summary{ cursor:pointer; font-weight:600; list-style:none; }
+  .hdr-notice summary::-webkit-details-marker{ display:none; }
+  .hdr-notice[open] summary{ margin-bottom:3px; }
+  .hdr-notice ul{ margin:0; padding-left:1.1em; }
+  .hdr-notice li{ margin:1px 0; }
+  .hdr-notice strong{ color:#fff2b3; }
+  .hdr-notice summary:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+
+  .contact{ grid-area:contact; justify-self:end; text-align:right; font-size:10.5px; line-height:1.4; background:rgba(0,0,0,.15); border-radius:10px; padding:5px 8px; }
+  .contact .item{ margin-bottom:3px; }
+  .contact .org{ display:block; font-weight:600; }
+  .contact a{ color:#fff; text-decoration:underline; text-underline-offset:2px; white-space:nowrap; }
+  .contact .maint{ margin-top:4px; padding-top:3px; border-top:1px solid rgba(255,255,255,.3); opacity:.9; font-size:10px; }
+
+  .role-switch{ grid-area:switch; display:grid; grid-template-columns:1fr 1fr; background:rgba(0,0,0,.18); border-radius:999px; padding:3px; position:relative; }
+  .role-switch button{ position:relative; z-index:1; border:0; background:transparent; color:#fff; font:inherit; font-size:14px; font-weight:600; padding:7px 4px; border-radius:999px; cursor:pointer; }
+  .role-switch button[aria-pressed="true"]{ color:var(--brand); }
+  .role-switch .thumb{ position:absolute; top:3px; bottom:3px; left:3px; width:calc(50% - 3px); background:#fff; border-radius:999px; transition:transform .25s ease; }
+  body.agency .role-switch .thumb{ transform:translateX(100%); }
+  .role-switch button:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+
+  /* ---------- 主版面 ---------- */
+  .layout{ flex:1; min-height:0; display:flex; }
+  .chat-col{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  main{ flex:1; overflow-y:auto; padding:14px 12px 8px; scroll-behavior:smooth; }
+  .side{ display:none; }
+  .side-card{ background:#fff; border:1px solid var(--border); border-radius:14px; padding:12px 14px; flex-shrink:0; }
+  .side-title{ margin:0 0 8px; font-size:15px; color:var(--brand); display:flex; align-items:center; gap:6px; }
+  .side-sub{ margin-left:auto; font-size:11.5px; font-weight:600; color:var(--muted); background:var(--brand-soft); padding:1px 8px; border-radius:999px; }
+  .side-quick{ display:flex; flex-wrap:wrap; gap:6px; }
+  .side-quick button{ flex:1 1 45%; min-width:0; text-align:left; border:1px solid var(--border); background:#f9fbfa; color:var(--text); font:inherit; font-size:14px; padding:7px 10px; border-radius:10px; cursor:pointer; line-height:1.4; }
+  .side-quick button:hover{ border-color:var(--brand); background:var(--brand-soft); color:var(--brand); }
+  .side-quick button.faqall{ flex-basis:100%; background:var(--brand); color:#fff; border-color:var(--brand); }
+  .side-quick button.oos{ border-style:dashed; color:var(--muted); }
+  .side-quick button:focus-visible,.side-links a:focus-visible,.side-links button:focus-visible{ outline:2px solid var(--brand); outline-offset:2px; }
+  .side-faq{ display:flex; flex-direction:column; }
+  .side-faq-list{ min-height:220px; max-height:46vh; overflow-y:auto; margin:0 -4px; padding:0 4px; }
+  .side-empty{ font-size:13px; color:var(--muted); padding:6px 2px; }
+  .side-links{ display:flex; flex-direction:column; gap:6px; font-size:13.5px; }
+  .side-links a,.side-links button{ color:var(--brand); text-decoration:none; font-weight:600; }
+  .side-links button{ border:0; background:transparent; font:inherit; text-align:left; padding:0; cursor:pointer; }
+
+  /* ---------- 對話 ---------- */
+  .msg{ display:flex; gap:8px; margin-bottom:14px; align-items:flex-end; animation:pop .25s ease; }
+  .msg.user{ flex-direction:row-reverse; }
+  @keyframes pop{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+  .avatar{ width:32px; height:32px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:var(--brand); color:#fff; font-size:16px; }
+  .msg.user .avatar{ background:#8aa39a; }
+  .bubble-wrap{ max-width:86%; display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .msg.user .bubble-wrap{ align-items:flex-end; }
+  .bubble{ padding:10px 14px; border-radius:var(--radius); background:var(--card); box-shadow:0 1px 2px rgba(0,0,0,.06); word-break:break-word; }
+  .msg.bot .bubble{ border-bottom-left-radius:4px; }
+  .msg.user .bubble{ background:var(--brand); color:#fff; border-bottom-right-radius:4px; }
+  .meta{ font-size:11px; color:var(--muted); padding:0 4px; }
+  .mode-tag{ display:inline-block; font-size:11px; padding:1px 8px; border-radius:999px; background:var(--brand-soft); color:var(--brand); font-weight:600; margin-bottom:4px; }
+  .faq-tag{ display:inline-block; font-size:11px; padding:1px 8px; border-radius:999px; background:var(--warn-soft); color:var(--warn); font-weight:600; margin:0 0 4px 4px; }
+  .bubble h3{ font-size:15.5px; margin:10px 0 4px; color:var(--brand); }
+  .bubble h3:first-child{ margin-top:2px; }
+  .bubble p{ margin:4px 0; }
+  .bubble ul,.bubble ol{ margin:4px 0; padding-left:1.3em; }
+  .bubble li{ margin:2px 0; }
+  .bubble code{ background:#f1f4f3; padding:1px 5px; border-radius:5px; font-size:.9em; }
+  .bubble blockquote{ margin:8px 0; padding:6px 10px; border-left:4px solid var(--warn); background:var(--warn-soft); border-radius:6px; font-size:14px; }
+  .source-card,.related{ background:#fff; border:1px solid var(--border); border-radius:12px; padding:9px 11px; font-size:13px; }
+  .source-card .label,.related .label{ font-weight:700; color:var(--muted); font-size:12px; margin-bottom:6px; }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .chip-src{ display:inline-flex; align-items:center; gap:4px; border:1px solid var(--brand); color:var(--brand); background:var(--brand-soft); padding:3px 9px; border-radius:999px; font-size:12.5px; text-decoration:none; line-height:1.4; }
+  .go-btn{ margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:8px; border-radius:10px; background:var(--brand); color:#fff; text-decoration:none; font-weight:600; font-size:14px; }
+  .faq-btn{ background:#fff; color:var(--brand); border:1px solid var(--brand); margin-top:6px; }
+  .go-btn:focus-visible,.chip-src:focus-visible{ outline:2px solid var(--brand); outline-offset:2px; }
+  .hotline{ margin-top:8px; padding-top:7px; border-top:1px dashed var(--border); font-size:12.5px; color:var(--muted); }
+  .hotline a{ color:var(--brand); font-weight:600; text-decoration:none; white-space:nowrap; }
+  .hotline div{ margin-top:2px; }
+  .q-link{ display:block; width:100%; text-align:left; border:0; border-top:1px solid #eef1f0; background:transparent; color:var(--brand); font:inherit; font-size:13.5px; padding:6px 2px; cursor:pointer; line-height:1.45; }
+  .q-link:first-of-type{ border-top:0; }
+  .q-link:hover{ background:var(--brand-soft); }
+  .q-link:focus-visible{ outline:2px solid var(--brand); outline-offset:1px; }
+  .faq-search{ width:100%; font:inherit; font-size:15px; padding:7px 10px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; }
+  .faq-list{ max-height:320px; overflow-y:auto; }
+  .typing{ display:flex; gap:4px; padding:4px 2px; }
+  .typing span{ width:7px; height:7px; border-radius:50%; background:#9bb0a9; animation:blink 1.2s infinite; }
+  .typing span:nth-child(2){ animation-delay:.2s; } .typing span:nth-child(3){ animation-delay:.4s; }
+  @keyframes blink{ 0%,80%,100%{opacity:.3;} 40%{opacity:1;} }
+
+  /* ---------- 底部輸入 ---------- */
+  footer{ background:#fff; border-top:1px solid var(--border); padding:8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  .quick{ display:flex; gap:8px; overflow-x:auto; padding:2px 2px 8px; scrollbar-width:none; }
+  .quick::-webkit-scrollbar{ display:none; }
+  .quick button{ flex-shrink:0; border:1px solid var(--brand); color:var(--brand); background:var(--brand-soft); font:inherit; font-size:13.5px; padding:6px 12px; border-radius:999px; cursor:pointer; white-space:nowrap; }
+  .quick button.faqall{ background:var(--brand); color:#fff; }
+  .quick button.oos{ border-style:dashed; color:var(--muted); border-color:var(--muted); background:#f5f7f6; }
+  form.input-row{ display:flex; gap:8px; align-items:flex-end; }
+  textarea{ flex:1; resize:none; font:inherit; font-size:16px; border:1px solid var(--border); border-radius:20px; padding:9px 14px; max-height:120px; outline:none; background:#f7f9f8; color:var(--text); }
+  textarea:focus{ border-color:var(--brand); background:#fff; }
+  .send{ width:42px; height:42px; border-radius:50%; border:0; background:var(--brand); color:#fff; font-size:18px; cursor:pointer; flex-shrink:0; display:grid; place-items:center; }
+  .send:disabled{ opacity:.45; cursor:not-allowed; }
+  .send:focus-visible,.quick button:focus-visible,textarea:focus-visible{ outline:2px solid var(--brand); outline-offset:2px; }
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+
+  /* ---------- 視窗 ---------- */
+  .modal-mask{ position:fixed; inset:0; background:rgba(10,25,45,.55); display:none; align-items:center; justify-content:center; padding:16px; z-index:50; }
+  .modal-mask.open{ display:flex; animation:pop .2s ease; }
+  .modal{ width:100%; max-width:380px; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,.25); }
+  .modal-hd{ background:linear-gradient(135deg,var(--gov),var(--gov-2)); color:#fff; padding:14px 18px; position:relative; }
+  .modal-hd.green{ background:linear-gradient(135deg,#0b6e4f,#13906a); }
+  .modal-hd h2{ margin:0; font-size:17px; padding-right:36px; }
+  .modal-hd p{ margin:2px 0 0; font-size:12.5px; opacity:.9; padding-right:36px; }
+  .modal-x{ position:absolute; right:12px; top:12px; border:0; background:rgba(255,255,255,.2); color:#fff; width:32px; height:32px; border-radius:50%; font-size:18px; cursor:pointer; }
+  .modal-x:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  .modal-bd{ padding:16px 18px 18px; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:13.5px; font-weight:600; margin-bottom:4px; }
+  .field input{ width:100%; font:inherit; font-size:16px; padding:9px 12px; border:1px solid var(--border); border-radius:10px; outline:none; background:#f7f9fb; }
+  .field input:focus{ border-color:var(--gov); background:#fff; box-shadow:0 0 0 3px var(--gov-soft); }
+  .pw-wrap{ position:relative; }
+  .pw-wrap input{ padding-right:64px; }
+  .pw-toggle{ position:absolute; right:6px; top:50%; transform:translateY(-50%); border:0; background:transparent; color:var(--gov); font:inherit; font-size:13px; cursor:pointer; padding:4px 6px; }
+  .login-hint{ font-size:12px; color:var(--muted); margin:-4px 0 6px; }
+  .login-err{ min-height:20px; color:var(--err); font-size:13px; margin:-4px 0 8px; }
+  .modal-actions{ display:flex; gap:8px; }
+  .modal-actions button{ flex:1; font:inherit; font-size:15px; font-weight:600; padding:9px; border-radius:10px; cursor:pointer; }
+  .btn-cancel{ background:#fff; border:1px solid var(--border); color:var(--text); }
+  .btn-login{ background:var(--gov); border:1px solid var(--gov); color:#fff; }
+  .btn-login.green{ background:#0b6e4f; border-color:#0b6e4f; }
+  .btn-login:disabled{ opacity:.5; cursor:not-allowed; }
+  .modal-actions button:focus-visible,.pw-toggle:focus-visible{ outline:2px solid var(--gov); outline-offset:2px; }
+  .modal-ft{ margin-top:12px; font-size:12px; color:var(--muted); line-height:1.5; }
+
+  /* 統計儀表板 */
+  .modal.stats-modal{ max-width:1180px; max-height:calc(100dvh - 32px); display:flex; flex-direction:column; }
+  .stats-bd{ overflow-y:auto; padding:14px 18px 18px; font-size:14px; }
+  .stats-bar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+  .seg{ display:inline-flex; border:1px solid var(--gov); border-radius:999px; overflow:hidden; }
+  .seg button{ border:0; background:#fff; color:var(--gov); font:inherit; font-size:13px; padding:5px 12px; cursor:pointer; }
+  .seg button[aria-pressed="true"]{ background:var(--gov); color:#fff; }
+  .tool{ border:1px solid var(--border); background:#fff; color:var(--text); font:inherit; font-size:13px; padding:5px 12px; border-radius:999px; cursor:pointer; }
+  .tool.danger{ color:var(--err); border-color:#efc4c0; }
+  .seg button:focus-visible,.tool:focus-visible{ outline:2px solid var(--gov); outline-offset:2px; }
+  .stats-note{ font-size:12px; color:var(--muted); margin-left:auto; }
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+  .kpi{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:#fbfcfe; }
+  .kpi .v{ font-size:26px; font-weight:700; color:var(--gov); line-height:1.2; }
+  .kpi.pub .v{ color:#0b6e4f; } .kpi.warn .v{ color:var(--warn); }
+  .kpi .l{ font-size:12.5px; color:var(--muted); }
+  .stats-grid{ display:grid; grid-template-columns:1fr; gap:12px; margin-top:12px; }
+  .panel{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; min-width:0; }
+  .panel h3{ margin:0 0 8px; font-size:14.5px; color:var(--gov); }
+  .panel .sub{ font-weight:400; font-size:12px; color:var(--muted); }
+  .legend{ display:flex; gap:12px; font-size:12px; color:var(--muted); margin-bottom:6px; flex-wrap:wrap; }
+  .legend i{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+  .c-pub{ background:#13906a; } .c-gov{ background:#2d6bc0; }
+  .trend{ display:flex; align-items:flex-end; gap:3px; height:150px; border-bottom:1px solid var(--border); padding-top:6px; }
+  .trend .col{ flex:1; min-width:0; display:flex; flex-direction:column-reverse; height:100%; }
+  .trend .col span{ display:block; width:100%; }
+  .trend-x{ display:flex; gap:3px; font-size:10.5px; color:var(--muted); margin-top:3px; }
+  .trend-x span{ flex:1; min-width:0; text-align:center; overflow:hidden; white-space:nowrap; }
+  .hrow{ display:grid; grid-template-columns:22px minmax(0,1fr) minmax(70px,38%) 34px; gap:8px; align-items:center; padding:4px 0; border-top:1px solid #f0f2f4; font-size:13px; }
+  .hrow:first-of-type{ border-top:0; }
+  .hrow .rk{ font-weight:700; color:var(--muted); text-align:center; }
+  .hrow .nm{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hrow .bar{ display:flex; height:12px; background:#f1f4f7; border-radius:6px; overflow:hidden; }
+  .hrow .n{ text-align:right; font-weight:700; color:var(--gov); }
+  .heat{ display:grid; grid-template-columns:28px repeat(24,minmax(0,1fr)); gap:2px; font-size:10.5px; color:var(--muted); }
+  .heat .cell{ height:22px; border-radius:3px; background:#f1f4f7; }
+  .heat .hl{ text-align:center; }
+  .heat-scale{ display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); margin-top:6px; }
+  .heat-scale span{ width:16px; height:10px; border-radius:2px; display:inline-block; }
+  .cat-row{ display:flex; height:22px; border-radius:6px; overflow:hidden; margin:4px 0 8px; }
+  .cat-row div{ display:flex; align-items:center; justify-content:center; color:#fff; font-size:11.5px; font-weight:700; white-space:nowrap; overflow:hidden; }
+  .cat-list{ font-size:13px; } .cat-list div{ display:flex; justify-content:space-between; padding:2px 0; }
+  .unmet li{ font-size:13px; margin:3px 0; } .unmet .cnt{ color:var(--warn); font-weight:700; margin-left:6px; }
+  .empty{ color:var(--muted); font-size:13px; padding:8px 0; }
+
+  /* 匿名告知、隱私說明、資料來源清單 */
+  .link-btn{ border:0; background:transparent; color:#fff2b3; font:inherit; font-weight:700; text-decoration:underline; text-underline-offset:2px; cursor:pointer; padding:0 2px; }
+  .link-btn.dark{ color:var(--brand); font-weight:600; }
+  .link-btn:focus-visible{ outline:2px solid currentColor; outline-offset:1px; }
+  .pii-hint{ font-size:11.5px; color:var(--muted); margin-top:5px; padding:0 4px; line-height:1.5; }
+  .consent{ position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); z-index:40; max-width:720px; margin:0 auto;
+    background:#fff; border:1px solid var(--border); border-left:5px solid var(--brand); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.18);
+    padding:10px 12px; display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; font-size:13.5px; animation:pop .25s ease; }
+  .consent[hidden]{ display:none; }
+  .consent-txt{ flex:1 1 320px; line-height:1.55; }
+  .consent-act{ display:flex; gap:8px; margin-left:auto; }
+  .btn-ok{ border:0; background:var(--brand); color:#fff; font:inherit; font-weight:700; font-size:14px; padding:6px 16px; border-radius:999px; cursor:pointer; }
+  .btn-ok:focus-visible{ outline:2px solid var(--brand); outline-offset:2px; }
+  .modal.doc-modal{ max-width:760px; max-height:calc(100dvh - 32px); display:flex; flex-direction:column; }
+  .doc-bd{ overflow-y:auto; padding:6px 20px 18px; font-size:14px; line-height:1.7; }
+  .doc-bd h3{ font-size:15px; color:#0b6e4f; margin:14px 0 4px; }
+  .doc-bd p{ margin:4px 0; } .doc-bd ul,.doc-bd ol{ margin:4px 0; padding-left:1.4em; }
+  .doc-bd li{ margin:2px 0; }
+  .doc-bd .small{ font-size:12.5px; color:var(--muted); }
+  .doc-bd a{ color:#0b6e4f; font-weight:700; }
+  .doc-bd .rule{ border:1px solid #f0d9b5; background:var(--warn-soft); border-radius:10px; padding:8px 12px; margin:8px 0; }
+  .ptable{ width:100%; border-collapse:collapse; font-size:13px; margin:6px 0; }
+  .ptable th,.ptable td{ border:1px solid var(--border); padding:6px 8px; vertical-align:top; text-align:left; }
+  .ptable th{ background:#e6f4ee; }
+  .optout{ display:flex; gap:8px; align-items:center; margin-top:8px; padding:8px 10px; border:1px dashed var(--border); border-radius:10px; font-weight:600; cursor:pointer; }
+  .optout input{ width:18px; height:18px; }
+
+  /* ---------- 響應式 ---------- */
+  @media (max-width:360px){ .logo{ display:none; } .contact{ font-size:10px; } .title h1{ font-size:15px; } }
+  @media (min-width:600px){ .contact{ font-size:12px; } .contact .org{ display:inline; margin-right:4px; } .contact .maint{ font-size:11px; } }
+  @media (min-width:768px){ main{ padding:16px 24px 8px; } header,footer{ padding-left:24px; padding-right:24px; } }
+  @media (min-width:900px){
+    header{ grid-template-columns:minmax(250px,auto) minmax(0,1fr) auto; grid-template-areas:"brand notice contact" "switch notice contact"; column-gap:20px; align-items:stretch; }
+    .brand{ align-self:start; }
+    .role-switch{ width:100%; max-width:340px; align-self:end; }
+    .hdr-notice{ align-self:stretch; display:flex; align-items:center; font-size:12.5px; padding:6px 14px; }
+    .hdr-notice summary{ display:none; }
+    .contact{ align-self:stretch; display:flex; flex-direction:column; justify-content:center; }
+    .side{ display:flex; flex-direction:column; gap:12px; width:340px; flex-shrink:0; padding:14px 20px 14px 4px; overflow-y:auto; }
+    footer .quick{ display:none; }
+    footer{ border-top:0; background:transparent; padding-bottom:14px; }
+    .pii-hint{ text-align:center; }
+    .consent{ left:24px; right:auto; bottom:110px; width:min(680px, calc(100% - 420px)); margin:0; }
+    form.input-row{ background:#fff; border:1px solid var(--border); border-radius:26px; padding:5px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    form.input-row textarea{ border:0; background:transparent; }
+    .bubble-wrap{ max-width:calc(100% - 44px); flex:1; }
+    .msg.user .bubble-wrap{ flex:0 1 auto; max-width:75%; }
+    .stats-grid{ grid-template-columns:1fr 1fr; }
+    .stats-grid .wide{ grid-column:1 / -1; }
+  }
+  @media (min-width:1300px){ .side{ width:400px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">🛢️</div>
+      <div class="title">
+        <h1>貯存系統 AI 法規客服</h1>
+        <p><span class="status-dot"></span><span id="modeDesc">民眾／業者模式</span></p>
+        <div class="user-line">
+          <span id="userName"></span>
+          <button type="button" class="hbtn stats" id="btnStats">📊 使用統計</button>
+          <button type="button" class="hbtn" id="btnLogout">登出</button>
+        </div>
+      </div>
+    </div>
+    <details class="hdr-notice" id="hdrNotice" open>
+      <summary>ℹ️ 服務說明（點此展開）</summary>
+      <ul>
+        <li>本客服<strong>僅依「資料來源清單」所列文件回答</strong>（環境部貯存系統申報中心「相關法規、參考指引、作業程序」及「常見問題」），清單以外之資料一律不回答、不自行延伸。<button type="button" class="link-btn" data-open-sources>資料來源清單</button></li>
+        <li>所有法規資料皆<strong>全面開放查詢</strong>；機關/委辦人員登入後僅切換為法條引用式回覆。</li>
+        <li>目前為<strong>模擬展示模式</strong>，回覆內容請以法規原文及主管機關解釋為準。</li>
+        <li>🔐 本網站以<strong>匿名方式</strong>統計使用人次及提問內容，用於服務改善，不蒐集姓名、電話等個人資料。<button type="button" class="link-btn" data-open-privacy>隱私權及個資保護說明</button></li>
+      </ul>
+    </details>
+    <div class="contact" aria-label="諮詢聯絡資訊">
+      <div class="item"><span class="org">屏東縣政府環境保護局</span> <a href="tel:+88687351922">(08)735-1922#OOO</a></div>
+      <div class="item"><span class="org">美商傑明工程顧問(股)台灣分公司</span> <a href="tel:+88673232753">(07)323-2753#OOO</a></div>
+      <div class="maint">網頁維護單位：美商傑明工程顧問(股)台灣分公司</div>
+    </div>
+    <div class="role-switch" role="group" aria-label="切換使用者身分">
+      <span class="thumb" aria-hidden="true"></span>
+      <button type="button" id="btnPublic" aria-pressed="true">👤 民眾／業者</button>
+      <button type="button" id="btnAgency" aria-pressed="false">🔒 機關/委辦人員</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="chat-col">
+      <main id="chat" aria-live="polite"></main>
+      <footer>
+        <div class="quick" id="quick" aria-label="快捷提問"></div>
+        <form class="input-row" id="form">
+          <label for="input" class="sr-only">輸入問題</label>
+          <textarea id="input" rows="1" placeholder="請輸入貯存系統法規或申報問題…"></textarea>
+          <button class="send" id="send" type="submit" aria-label="送出">➤</button>
+        </form>
+        <div class="pii-hint">🔐 請勿輸入姓名、電話、身分證字號、地址等個人資料；提問內容將匿名用於服務改善統計。<button type="button" class="link-btn dark" data-open-privacy>隱私權說明</button></div>
+      </footer>
+    </div>
+    <aside class="side" aria-label="快速提問與常見問題">
+      <section class="side-card">
+        <h2 class="side-title">⚡ 快速提問 <span class="side-sub" id="sideMode">民眾／業者</span></h2>
+        <div class="side-quick" id="sideQuick"></div>
+      </section>
+      <section class="side-card side-faq">
+        <h2 class="side-title">📋 申報中心常見問題 <span class="side-sub" id="faqCount"></span></h2>
+        <input type="search" class="faq-search" id="sideSearch" placeholder="輸入關鍵字篩選，例如：密碼、通報、油盆" aria-label="篩選常見問題">
+        <div class="side-faq-list" id="sideFaq"></div>
+        <div class="side-empty" id="sideEmpty" hidden>查無相符題目，可直接於左側輸入問題詢問。</div>
+      </section>
+      <section class="side-card side-links">
+        <button type="button" data-open-sources>📚 資料來源清單（<span id="srcCount"></span> 份）</button>
+        <a href="https://stge.moenv.gov.tw/GroundStorageSTGE/Rules" target="_blank" rel="noopener noreferrer">🔗 相關法規、參考指引、作業程序</a>
+        <a href="https://stge.moenv.gov.tw/GroundStorageSTGE/OnlineFaq" target="_blank" rel="noopener noreferrer">❓ 申報中心常見問題網頁</a>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<!-- 登入視窗 -->
+<div class="modal-mask" id="loginMask" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <div class="modal">
+    <div class="modal-hd">
+      <h2 id="loginTitle">🔒 機關/委辦人員登入</h2>
+      <p>本模式僅限授權之機關及委辦單位人員使用</p>
+    </div>
+    <form class="modal-bd" id="loginForm" autocomplete="on">
+      <div class="field">
+        <label for="loginUser">帳號</label>
+        <input id="loginUser" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required />
+      </div>
+      <div class="field">
+        <label for="loginPw">密碼</label>
+        <div class="pw-wrap">
+          <input id="loginPw" name="password" type="password" autocomplete="current-password" required />
+          <button type="button" class="pw-toggle" id="pwToggle" aria-label="顯示密碼">顯示</button>
+        </div>
+      </div>
+      <div class="login-hint">帳號不分大小寫；全形符號（如＠）會自動轉為半形。</div>
+      <div class="login-err" id="loginErr" aria-live="assertive"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" id="loginCancel">取消</button>
+        <button type="submit" class="btn-login" id="loginSubmit">登入</button>
+      </div>
+      <div class="modal-ft">
+        帳號申請或忘記密碼，請洽：<br>
+        屏東縣政府環境保護局 (08)735-1922#OOO<br>
+        屏東縣委辦公司諮詢 (07)323-2753#OOO
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 首次進站匿名告知 -->
+<div class="consent" id="consent" role="region" aria-label="匿名統計告知" hidden>
+  <div class="consent-txt">🔐 <strong>匿名統計告知：</strong>為改善服務品質，本網站會以匿名方式記錄進站人次與提問內容（不含姓名、電話、IP 等可識別個人之資料），提問中如含電話、身分證字號、Email 將自動遮蔽。</div>
+  <div class="consent-act">
+    <button type="button" class="tool" data-open-privacy>查看說明</button>
+    <button type="button" class="btn-ok" id="consentOk">我知道了</button>
+  </div>
+</div>
+
+<!-- 資料來源清單與回答邊界 -->
+<div class="modal-mask" id="sourcesMask" role="dialog" aria-modal="true" aria-labelledby="sourcesTitle">
+  <div class="modal doc-modal">
+    <div class="modal-hd green">
+      <h2 id="sourcesTitle">📚 資料來源清單與回答邊界</h2>
+      <p>本客服僅依下列文件回答；清單以外之資料一律不回答、不自行延伸</p>
+      <button type="button" class="modal-x" id="sourcesClose" aria-label="關閉">✕</button>
+    </div>
+    <div class="doc-bd" id="sourcesBody"></div>
+  </div>
+</div>
+
+<!-- 隱私權及個資保護說明 -->
+<div class="modal-mask" id="privacyMask" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">
+  <div class="modal doc-modal">
+    <div class="modal-hd green">
+      <h2 id="privacyTitle">🔐 隱私權及個人資料保護說明</h2>
+      <p>依個人資料保護法第 8 條告知事項說明（版本：2026-11）</p>
+      <button type="button" class="modal-x" id="privacyClose" aria-label="關閉">✕</button>
+    </div>
+    <div class="doc-bd">
+      <h3>一、蒐集機關及維護單位</h3>
+      <p>蒐集機關：屏東縣政府環境保護局；網站維護單位（受託處理）：美商傑明工程顧問(股)台灣分公司。</p>
+      <h3>二、蒐集目的</h3>
+      <p>統計本 AI 法規客服之使用人次、常見提問主題及尖峰時段，作為改善常見問題、補強法規知識庫及調配諮詢人力之依據。</p>
+      <h3>三、蒐集項目（均為匿名資料）</h3>
+      <table class="ptable">
+        <tr><th>對象</th><th>記錄內容</th><th>不記錄</th></tr>
+        <tr><td>民眾／業者</td><td>進站時間、提問內容（自動遮蔽電話、身分證字號、Email、管制編號）、系統判定之提問主題及類別</td><td rowspan="2">姓名、電話、地址、IP 位址、裝置識別碼、定位資訊</td></tr>
+        <tr><td>機關/委辦人員</td><td>登入時間、所屬單位名稱、提問內容及主題</td></tr>
+      </table>
+      <p class="small">為區分同一次瀏覽，系統會產生一組<strong>隨機工作階段代碼</strong>，關閉分頁即失效，無法回推個人身分。</p>
+      <h3>四、利用期間、地區、對象及方式</h3>
+      <ul>
+        <li><strong>期間：</strong>使用紀錄保存 2 年；其中提問文字保存 1 年後刪除，僅保留主題分類統計。</li>
+        <li><strong>地區：</strong>中華民國境內。</li>
+        <li><strong>對象：</strong>屏東縣政府環境保護局及受託維護單位之授權人員。</li>
+        <li><strong>方式：</strong>僅以統計分析方式利用，不對外提供個別紀錄；對外公開時僅呈現彙總數據。</li>
+      </ul>
+      <h3>五、您的權利</h3>
+      <p>依個人資料保護法第 3 條，您得請求查詢或閱覽、製給複製本、補充或更正、停止蒐集處理利用及刪除。因本網站紀錄為匿名資料、無法識別特定個人，如您於提問中誤填個人資料，請來電說明提問時間及內容，由承辦人員協助刪除。</p>
+      <h3>六、不提供之影響</h3>
+      <p>您可選擇不提供提問內容，<strong>不影響</strong>任何查詢功能；系統將僅統計提問次數。</p>
+      <label class="optout"><input type="checkbox" id="optOut"> 我不同意提供提問內容（僅統計次數）</label>
+      <h3>七、資訊安全措施</h3>
+      <p>正式上線時，資料以加密連線（HTTPS）傳輸並存放於受管控之伺服器；統計頁限授權帳號登入檢視，檢視及匯出行為留存稽核紀錄。</p>
+      <h3>八、聯絡窗口</h3>
+      <p>屏東縣政府環境保護局 <a href="tel:+88687351922">(08)735-1922#OOO</a>　／　屏東縣委辦公司諮詢 <a href="tel:+88673232753">(07)323-2753#OOO</a></p>
+      <div class="modal-actions" style="margin-top:14px"><button type="button" class="btn-login green" id="privacyOk">我已了解</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- 使用統計儀表板（僅機關/委辦人員登入後可開啟） -->
+<div class="modal-mask" id="statsMask" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
+  <div class="modal stats-modal">
+    <div class="modal-hd">
+      <h2 id="statsTitle">📊 使用統計與高頻提問熱區分析</h2>
+      <p id="statsSrc">資料來源：本機瀏覽器紀錄（展示模式）</p>
+      <button type="button" class="modal-x" id="statsClose" aria-label="關閉">✕</button>
+    </div>
+    <div class="stats-bd">
+      <div class="stats-bar">
+        <div class="seg" role="group" aria-label="統計期間" id="statsRange">
+          <button type="button" data-r="1" aria-pressed="false">今日</button>
+          <button type="button" data-r="7" aria-pressed="false">近 7 天</button>
+          <button type="button" data-r="30" aria-pressed="true">近 30 天</button>
+          <button type="button" data-r="0" aria-pressed="false">全部</button>
+        </div>
+        <button type="button" class="tool" id="statsCsv">⬇ 匯出 CSV</button>
+        <button type="button" class="tool" id="statsDemo">🧪 載入示範資料</button>
+        <button type="button" class="tool danger" id="statsClear">🗑 清除紀錄</button>
+        <span class="stats-note" id="statsNote"></span>
+      </div>
+      <div id="statsBody" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+     0. 全域設定
+     ========================================================= */
+  // 屏東縣諮詢窗口（分機 OOO 請替換為實際分機）
+  const CONTACTS = [
+    { label: "屏東縣委辦公司諮詢", tel: "(07)323-2753#OOO", href: "tel:+88673232753" },
+    { label: "屏東縣政府環境保護局", tel: "(08)735-1922#OOO", href: "tel:+88687351922" }
+  ];
+  const CONTACT_MD = CONTACTS.map(c => `- ${c.label}：**${c.tel}**`).join("\n");
+
+  const CONFIG = {
+    USE_MOCK: true,                 // true：內建模擬知識庫；false：呼叫後端 API（Claude / RAG）
+    API_ENDPOINT: "/api/chat",
+    RULES_URL: "https://stge.moenv.gov.tw/GroundStorageSTGE/Rules",
+    FAQ_URL:   "https://stge.moenv.gov.tw/GroundStorageSTGE/OnlineFaq",
+    FALLBACK_TEXT: "目前環境部貯存系統相關法規與指引中無此明確規定，建議聯繫地方環保局或申報中心客服確認。",
+    PARTIAL_TEXT:  "其餘部分，現行貯存系統相關法規與指引無明確規定。",
+    CASE_TEXT:     "相關規定如上；您的情況是否符合規定或如何處分，不在本客服回答範圍，請洽轄區環保局確認。"
+  };
+
+  /* =========================================================
+     0-1. 搜尋邊界：資料來源清單（白名單）
+     - 依環境部貯存系統申報中心「相關法規、參考指引、作業程序」頁及「常見問題」頁列示文件
+     - AI 回答與後端 RAG 知識庫「只能」使用本清單文件；清單以外一律視為查無依據
+     - 新增或移除文件時，請同步更新本清單與後端知識庫
+     ========================================================= */
+  const SOURCE_SCOPE = [
+    { group: "修法說明專區", items: [
+      "水污染防治法第三十三條第一項公告指定之物質修正總說明及公告對照表",
+      "防止貯存系統污染地下水體設施及監測設備設置管理辦法修正總說明及條文對照表（109/12/29 公告）",
+      "防止貯存系統污染地下水體設施及監測設備設置管理辦法說明簡報",
+      "防止貯存系統污染地下水體設施及監測設備設置管理辦法常見問答集" ] },
+    { group: "環境部法規", items: [
+      "水污染防治法",
+      "水污染防治法事業分類及定義（109/12/29 公告）",
+      "水污染防治法第三十三條第一項公告指定之物質",
+      "土壤及地下水污染整治法",
+      "防止貯存系統污染地下水體設施及監測設備設置管理辦法",
+      "防止貯存系統污染地下水體設施及監測設備設置申請與相關表單填寫說明",
+      "防止貯存系統污染地下水體設施及監測設備設置改善計畫撰寫格式",
+      "地下儲槽系統之加油機底部設置適當防止油品滲漏設施參考指引",
+      "地下水監測方式增設土壤氣體監測井參考指引" ] },
+    { group: "能源署法規", items: [
+      "加油站設置管理規則",
+      "漁船加油站設置管理規則",
+      "自用加儲油加儲氣設施設置管理規則",
+      "航空站商港或工業專用港加儲油加儲氣設施設置管理規則",
+      "加油站油氣回收設施管理辦法" ] },
+    { group: "檢測方法及標準作業程序", items: [
+      "儲槽密閉測試檢測方法－氮氣加壓測漏法（NIEA M201.12C）",
+      "儲槽之管線密閉測試檢測方法－氮氣加壓測漏法（NIEA M202.12C）",
+      "土壤氣體監測井中油氣檢測方法（NIEA M203.12C）",
+      "地下儲槽密閉測試檢測方法－自動液位測漏法（NIEA M204.00C）",
+      "水中揮發性有機化合物檢測方法－吹氣捕捉／氣相層析質譜儀法（NIEA W785.57B）",
+      "水中總石油碳氫化合物檢測方法－氣相層析儀／火焰離子化偵測器法（NIEA W901.51B）",
+      "地下儲槽系統地下水監測標準作業程序",
+      "地下儲槽系統槽間監測標準作業程序",
+      "地下儲槽管線整合管理系統標準作業程序" ] },
+    { group: "其他（手冊及訓練教材）", items: [
+      "貯存系統設置設施及監測設備與預防管理參考手冊",
+      "訓練教材：防止貯存系統污染地下水體設施及監測設備設置管理辦法及相關法規介紹",
+      "訓練教材：定期監測資料網路申報作業介紹",
+      "訓練教材：儲槽及管線密閉測試作業介紹",
+      "訓練教材：地下水及槽間監測作業介紹",
+      "訓練教材：土壤氣體監測作業介紹" ] },
+    { group: "常見問題", items: [ "貯存系統申報中心「常見問題」官方答覆（共 49 題）" ] }
+  ];
+  const SOURCE_COUNT = SOURCE_SCOPE.reduce((n, g) => n + g.items.length, 0);
+
+  // 不回答範圍（列示於資料來源清單視窗，並供 System Prompt 使用）
+  const OUT_OF_SCOPE = [
+    "清單以外之法規、函釋、判決或其他縣市自治法規（例如：建築、消防、都市計畫、罰鍰額度裁罰準則等）",
+    "個案判定：是否違規、是否符合規定、會被如何處分或罰多少",
+    "文件未記載之數字：檢測費用、補助金額、實際審查天數等",
+    "修法預測、主管機關內部作業方式、其他縣市實務做法",
+    "與貯存系統法規及申報無關之問題"
+  ];
+
+  /* 機關/委辦人員登入設定
+     AUTH_MODE："local"（展示用，加鹽 SHA-256 雜湊比對）／"server"（正式用，後端 /api/login 驗證）
+     新增帳號雜湊值 = SHA256( SALT + "|" + 帳號(小寫) + "|" + 密碼 ) */
+  const AUTH = {
+    AUTH_MODE: "local",
+    LOGIN_ENDPOINT: "/api/login",
+    SALT: "STGE-PT-2026",
+    SESSION_MINUTES: 60,
+    MAX_ATTEMPTS: 5,
+    LOCK_MINUTES: 5,
+    USERS: [
+      // 展示帳號：admin / Ptepb@2026；consultant / Stantec@2026（上線前請更換）
+      { user: "admin",      name: "屏東縣環保局", hash: "eacb45c87795dc9683e5bb5d82cd7ef79148c3016f652d156f77fd54fbbf9942" },
+      { user: "consultant", name: "委辦單位",     hash: "070b8c21bc74b46b0c0ee4b394ab55fa39cb06cdfdb1fe5bbc4c4bd2f67c11dd" }
+    ]
+  };
+
+  /* 使用統計設定
+     MODE："local"：展示用，紀錄存於本瀏覽器 localStorage
+           "server"：正式用，事件送至後端集中彙整；儀表板向後端取得全站資料 */
+  const ANALYTICS = {
+    MODE: "local",
+    ENDPOINT: "/api/track",
+    STATS_ENDPOINT: "/api/stats/events",
+    EXPORT_ENDPOINT: "/api/stats/export.csv",
+    KEY: "stge_analytics_v1",
+    MAX_EVENTS: 20000,
+    RETENTION_DAYS: 730,          // 使用紀錄保存 2 年
+    Q_RETENTION_DAYS: 365,        // 提問文字保存 1 年，逾期僅保留主題分類
+    PRIVACY_VER: "2026-11"
+  };
+
+  const URL = {
+    RULES: CONFIG.RULES_URL,
+    FAQ:   CONFIG.FAQ_URL,
+    MGMT:  "https://oaout.moenv.gov.tw/law/LawContent.aspx?id=FL022348",
+    WPCA:  "https://oaout.moenv.gov.tw/law/LawContent.aspx?id=FL015486",
+    SUBST: "https://oaout.moenv.gov.tw/law/LawContent.aspx?id=GL005356"
+  };
+
+  /* =========================================================
+     1. AI 客服 System Prompt（串接真實 LLM 時由後端使用）
+     ========================================================= */
+  function buildSystemPrompt(role){
+    const contactLines = CONTACTS.map(c => `${c.label}：${c.tel}`).join("；");
+    const scope = SOURCE_SCOPE.map(g => `〔${g.group}〕` + g.items.join("、")).join("\n");
+    const base = `你是屏東縣「貯存系統法規與申報」AI 客服。
+
+【資料邊界】你只能使用 <context> 標籤內提供的文件片段作答。這些片段僅來自下列資料來源清單：
+${scope}
+<context> 以外的任何知識（包括你本身的訓練知識、清單以外之法規、函釋、網路資料）一律不得使用。
+
+【不回答範圍】
+${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
+
+【禁止延伸】
+1. 不得推論、類推，或綜合多份文件產生原文未寫明的結論。
+2. 數字、期限、頻率、濃度、容量、條號必須與原文一致，不得換算或估算。
+3. 不得判定個案是否違規或處分結果；只能說明規定，並加註：「${CONFIG.CASE_TEXT}」
+4. 問題僅部分有依據時，只回答有依據的部分，其餘註明：「${CONFIG.PARTIAL_TEXT}」
+5. 不得自行補充「稽查重點」「建議做法」等原文未記載之內容。
+
+【查無依據】<context> 無足以回答之內容時，只能回覆：「${CONFIG.FALLBACK_TEXT}」，並附諮詢電話：${contactLines}。
+
+【出處】回覆末尾逐項列出依據之文件名稱與條號（或常見問題題目）；無法標示出處的句子不得出現。
+【格式】繁體中文（臺灣用語），Markdown 條列。`;
+    const tone = role === "agency"
+      ? `【語氣】機關/委辦人員：用語精準，引用法條至條、項、款。身分不改變資料邊界。`
+      : `【語氣】民眾/業者：白話說明需要準備什麼、何時申報、監測頻率。身分不改變資料邊界。`;
+    return base + "\n" + tone;
+  }
+
+  /* =========================================================
+     2. 法規知識庫（展示用；內容僅取自資料來源清單文件）
+     ========================================================= */
+  const KB = [
+    {
+      id: "ust_monitoring", label: "地下儲槽監測頻率",
+      keywords: ["監測頻率","頻率","土壤氣體監測頻率","浮油","地下水監測","多久","PID","FID","爆炸下限","LEL","監測一次"],
+      sources: [
+        { t: "管理辦法 第12條（土壤氣體監測）", u: URL.MGMT },
+        { t: "管理辦法 第13條（地下水監測）", u: URL.MGMT },
+        { t: "管理辦法 第17條（適用時程）", u: URL.MGMT },
+        { t: "NIEA M203.12C 土壤氣體監測井中油氣檢測方法", u: URL.RULES }
+      ],
+      public:
+`### 地下儲槽多久要監測一次？
+要看您的儲槽採用哪一種監測方式：
+
+### 🅰 土壤氣體監測（管理辦法第12條）
+- **自己測（自行監測）**：**每月 1 次**，量測爆炸下限值百分比（%LEL）或揮發性有機氣體濃度。
+- **請檢測機構測（委託監測）**：**每 4 個月 1 次**，用光離子偵測器（PID）及火焰離子偵測器（FID）量油氣濃度。
+- 若 %LEL **大於 25%**，或 PID／FID **大於 500 ppmv**，可進一步做污染調查，確認是否有洩漏。
+
+### 🅱 地下水監測（管理辦法第13條）
+- **自行監測**：**每月 1 次**量測浮油厚度。
+- **委託監測**：**每年 1 次**，檢測苯、甲苯、乙苯、二甲苯、萘、甲基第三丁基醚（MTBE）及總石油碳氫化合物（或環保局指定項目）。
+
+### 📋 依規定要具備
+1. 監測井須**標記並加蓋**（第12條）
+2. 委託監測須由**中央主管機關核發許可證之檢驗測定機構**辦理（第12條）
+
+> 適用時程（第17條）：貯存汽油、柴油且已依規定改善完成者自 112 年 1 月 1 日起；貯存其他指定物質者自 116 年 1 月 1 日起。`,
+      agency:
+`### 地下儲槽系統監測頻率及法源
+**一、土壤氣體監測（管理辦法第12條）**
+- 第1項：應**自行及委託**中央主管機關核發許可證之檢驗測定機構為之；土壤氣體監測井透氣度須小於錶壓 500 mmHg，監測範圍以井為中心**半徑不得大於 5 公尺**，並應標記加蓋。
+- 第2項：自行監測**每月**監測 %LEL 或揮發性有機氣體濃度 1 次；委託監測**每四個月**以 PID 及 FID 檢測油氣濃度值 1 次。
+- 第3項：%LEL > 25% 或 PID／FID > 500 ppmv 者，事業得進行污染調查以研判有無洩漏。
+- 第4項：地下水最高水位或井內水位距地表 **2 公尺以內**，且透氣度大於錶壓 150 mmHg 者，**不得採用**土壤氣體監測方式。
+
+**二、地下水監測（管理辦法第13條）**
+- 地下水標準監測井：儲槽區及輸送區**上游 1 口以上、下游 2 口以上**。
+- 地下水位不得低於地表下 7 公尺，且介質水力傳導係數不得小於 0.01 cm/s；不符者應依儲槽容積增設土壤氣體監測井（未達 1,000 公秉 4 口；1,000～未達 10,000 公秉 6 口；10,000 公秉以上 8 口）。
+- 頻率：自行監測每月浮油厚度 1 次；委託監測每年 BTEX、萘、MTBE、TPH 或地方主管機關指定項目 1 次。
+
+**三、適用時程（管理辦法第17條）**
+- 汽油、柴油且依第32條改善完成者：自 112 年 1 月 1 日起監測、記錄及申報。
+- 其他指定物質：自 116 年 1 月 1 日起。`
+    },
+    {
+      id: "report_deadline", label: "申報期限與申報義務",
+      keywords: ["申報期限","期限","截止","什麼時候","何時申報","未申報","不申報","沒申報","裁罰","罰鍰","罰則","處分","會被罰","罰多少","申報義務"],
+      sources: [
+        { t: "水污染防治法 第33條第2項", u: URL.WPCA },
+        { t: "常見問題：地上、地下儲槽需進行環境監測者，於貯存系統中「線上申報」應申報哪些項目？", u: URL.FAQ },
+        { t: "常見問題：事業自行監測之紀錄，是否仍須網路申報?", u: URL.FAQ },
+        { t: "常見問題：申報e提醒顯示，過去申報資料發生「未正式提送環保局」者，該如何處理？", u: URL.FAQ }
+      ],
+      public:
+`### 什麼時候要申報？
+每年 **1 月、5 月、9 月的月底前**，要到「**貯存系統申報中心**」完成「線上申報」。
+
+### 📋 要申報什麼
+1. 前 4 個月的「**總量平衡監測紀錄**」
+2. 所採行監測方式的「**監測紀錄**」（委託檢測機構的監測結果）
+3. 有加油機的事業，**9 月底前**還要加報「**加油機底部防止滲漏設施之液密性檢測結果**」
+
+### ⚠️ 沒申報會怎樣？
+- 依**水污染防治法第33條第2項**，事業有依主管機關規定之格式、內容、頻率、方式**監測、記錄及申報**的義務。
+- 未申報會如何處分、罰鍰多少，**不在本客服回答範圍**，請洽轄區環保局確認。
+- 如果申報 e 提醒顯示過去資料「**未正式提送環保局**」：向環保局申請開放延長申報時間，於期限內確認資料無誤後，點選「**再次正式提送至環保局**」。
+
+### 💡 自行監測紀錄
+- 自行監測紀錄**不必網路申報**，可紙本保存 **3 年**，或用申報中心「事業自行監測紀錄」功能電子保存。`,
+      agency:
+`### 申報義務之法源
+- **水污染防治法第33條第2項**：監測設備應依主管機關規定之格式、內容、頻率、方式，監測、記錄及申報。
+
+### 申報時程及項目（申報中心常見問題）
+- 每年 **1、5、9 月之月底前**完成線上申報。
+- 申報前 4 個月之**總量平衡監測紀錄**，及所採行監測方式之**監測紀錄**；地下儲槽系統採管理辦法第9條、地上儲槽系統採第20條規定之監測方式者，申報檢測機構之監測紀錄結果。
+- 設有加油機者，9 月底前增報**加油機底部防止滲漏設施之液密性檢測結果**。
+- 自行監測紀錄免網路申報，得以紙本或申報中心電子方式保存 **3 年**。
+- 過去申報「未正式提送環保局」者，向所轄環保局申請開放延長申報時間，於期限內點選「再次正式提送至環保局」。
+
+> 罰鍰額度及裁量基準不在本客服資料來源清單內，本客服不提供。`
+    },
+    {
+      id: "designated_substances", label: "指定物質與納管範圍",
+      keywords: ["指定物質","物質有哪些","汽油","柴油","燃料油","航空燃油","34項","適用對象","納管","200公升","貯存容器"],
+      sources: [
+        { t: "水污染防治法第33條第1項公告指定之物質（109/12/29）", u: URL.SUBST },
+        { t: "水污染防治法 第33條第1項", u: URL.WPCA },
+        { t: "管理辦法 第2條、第3條、第4條", u: URL.MGMT },
+        { t: "公告指定物質修正總說明及公告對照表", u: URL.RULES }
+      ],
+      public:
+`### 哪些東西算「指定物質」？
+自 **110 年 1 月 1 日**起，共 **34 項**：
+- **25 項油品**：包括汽油、柴油、燃料油、航空燃油等
+- **9 項有機物**：符合土壤及地下水污染管制標準項目之化學物質
+
+完整名單請看環境部公告的**附件**。
+
+### 我的設施要不要管？（管理辦法第2條）
+貯存上述物質，且**容積合計達 200 公升以上**，就屬於「貯存系統」，包括：
+- 地下儲槽系統（槽體總體積 10% 以上在地面下）
+- 地上儲槽系統
+- 貯存容器
+
+✅ **不算**：密閉、未拆封或倒置後不會洩漏的容器。
+
+### 📋 要做什麼（管理辦法第4條）
+- 新設地上／地下儲槽系統，或容積合計達 **600 公升**以上的貯存容器，要先送「設置計畫書」到環保局備查。`,
+      agency:
+`### 指定物質及納管範圍
+**一、指定物質（109年12月29日公告）**
+- 依水污染防治法**第33條第1項**公告，計 **34 項**：汽油、柴油、燃料油及航空燃油等 **25 項油品**，及符合土壤及地下水污染管制標準項目之 **9 項有機物**，自 110 年 1 月 1 日生效；品項明細詳公告附件。
+
+**二、貯存系統定義（管理辦法第2條）**
+- 第1款：貯存指定物質之地上、地下儲槽系統或貯存容器，**容積合計達 200 公升以上**；但密閉、未拆封或倒置後不會洩漏者除外。
+- 第2款：地下儲槽指槽體總體積 **10% 以上**在地面下（不含緊急溢流或滿溢收集之備用儲槽）。
+- 第3款：地上儲槽指定著於地面、建築物或槽體總體積未達 10% 在地面下者。
+
+**三、排除適用（管理辦法第3條）**
+1. 水污法所稱廢（污）水處理設施
+2. 揮發性有機物空氣污染管制及排放標準所稱石化製程
+3. 共同管道法所稱公共設施管線
+4. 石油管理法所稱石油管線並設置於公共使用之土地者
+5. 工廠管理輔導法所稱廠區外工廠設備
+- 第2項：貯存容器貯存經登記廢棄之毒性化學物質，不受本辦法限制。`
+    },
+    {
+      id: "tightness_test", label: "密閉測試",
+      keywords: ["密閉測試","測漏","氮氣","SOP","M201","M202","M204","自動液位","洩漏測試"],
+      sources: [
+        { t: "NIEA M201.12C 儲槽密閉測試－氮氣加壓測漏法", u: URL.RULES },
+        { t: "NIEA M202.12C 儲槽之管線密閉測試－氮氣加壓測漏法", u: URL.RULES },
+        { t: "NIEA M204.00C 地下儲槽密閉測試－自動液位測漏法", u: URL.RULES },
+        { t: "管理辦法 第4條、第5條、第6條", u: URL.MGMT },
+        { t: "常見問題：委託密閉測試之檢測機構，應注意事項?", u: URL.FAQ }
+      ],
+      public:
+`### 密閉測試的檢測方法
+申報中心收錄的標準方法有 3 種：
+
+| 對象 | 方法 |
+|---|---|
+| 儲槽 | NIEA M201.12C 氮氣加壓測漏法 |
+| 管線 | NIEA M202.12C 氮氣加壓測漏法 |
+| 地下儲槽 | NIEA M204.00C 自動液位測漏法 |
+
+### 📋 委託檢測機構時（常見問題）
+1. 提供檢測機構：**管制編號、儲槽編號、輸送設備編號、輸送設備配置圖**
+2. 向檢測機構索取：**環境檢驗測定機構許可證影本、貯存系統污染監測人員結業證書影本、各次「採樣行程編號」與預定進場監測日期**
+
+### 📋 設置程序中的密閉測試（管理辦法第4條、第5條）
+1. 地下儲槽系統設置計畫書要載明「**密閉測試之計畫**」。
+2. 完工報告書要附**測試機構基本資料及測試報告**。
+
+> 測試壓力條件、操作步驟與合格判定，請直接查閱上述 NIEA 檢測方法原文。`,
+      agency:
+`### 密閉測試相關規定
+**一、檢測方法（申報中心「檢測方法及標準作業程序」）**
+- NIEA M201.12C：儲槽密閉測試－氮氣加壓測漏法
+- NIEA M202.12C：儲槽之管線密閉測試－氮氣加壓測漏法
+- NIEA M204.00C：地下儲槽密閉測試－自動液位測漏法
+
+**二、設置程序**
+- **管理辦法第4條第2項第3款第6目**：地下儲槽系統設置計畫書應載明「地下儲槽系統密閉測試之計畫」。
+- **管理辦法第5條第2項第2款第6目**：完工報告書應檢附密閉測試之**測試機構基本資料及測試報告**。
+- **管理辦法第5條第4項**：與備查內容不符者，應附**變更內容對照表**並敘明理由。
+- **管理辦法第6條**：設置計畫書或完工報告書處理期間 **14 日**；更新設置計畫書或更新完工報告書 **10 日**。
+
+**三、常見問題**
+- 採密閉測試監測者，依辦法規定之頻率監測申報，**毋須另選一種監測方式自行監測**。
+- 委託檢測機構時，應索取許可證影本、監測人員結業證書影本、各次採樣行程編號與預定進場監測日期。
+
+> 測試壓力條件及判定標準，請以 NIEA 方法原文為準。`
+    },
+    {
+      id: "new_installation", label: "新設／更新設置程序",
+      keywords: ["新設","設置計畫","計畫書","完工報告","備查","開工","送什麼文件","送審"],
+      sources: [
+        { t: "管理辦法 第2條、第4條、第5條、第6條", u: URL.MGMT },
+        { t: "設置申請與相關表單填寫說明", u: URL.RULES },
+        { t: "常見問題：地上、地下儲槽系統更新儲槽或輸送設備，應提送哪些報告書？", u: URL.FAQ },
+        { t: "常見問題：貯存系統更新加油機或油槍等設備，是否須提送「更新設置計畫書」及「更新完工報告書」？", u: URL.FAQ }
+      ],
+      public:
+`### 新設儲槽的申請流程（管理辦法第4條～第6條）
+1. **開工前**：目的事業主管機關核准後（或申請開工前），上網送「**設置計畫書**」給縣市環保局備查。
+2. **施工完成後**：地下儲槽系統要再送「**完工報告書**」備查；**更新**工程要在施工完成**次日起 30 日內**送出。
+3. 環保局處理期間：計畫書／完工報告 **14 日**；更新案 **10 日**。
+
+### 📋 設置計畫書要載明
+- 事業及規劃機構基本資料、設施及監測設備摘要表
+- 地理位置圖與水文地質資料、平面配置圖
+- 儲槽／容器數目、容量、儲存物質種類
+- 目的事業主管機關核准文件、建照影本
+- 防溢、防蝕、二次阻隔、監測方式等設計圖說
+- 地下儲槽要附**密閉測試計畫**
+
+> 計畫書及報告書都要以**網路傳輸**方式送件。依常見問題，只更新**加油機或油槍**不屬「更新」，不用送更新計畫書，只要填基本資料異動申請表傳真環保局，待開放後修改。`,
+      agency:
+`### 新設／更新備查程序
+- **管理辦法第4條第1項**：事業新設地上、地下儲槽系統及容積合計達 600 公升以上之貯存容器，經目的事業主管機關核准後或申請開工前，應檢具**設置計畫書**送直轄市、縣（市）主管機關備查。
+- **第4條第2項**：依貯存系統類別分列應記載事項。
+- **第4條第3、4項**：更新儲槽或地上儲槽系統亦應提送更新設置計畫書；均應以**網路傳輸**方式為之。
+- **第5條**：新設地下儲槽系統完工後提送完工報告書；更新者於施工完成日之次日起 **30 日內**提送；與備查內容不符應附**變更內容對照表**並敘明理由。
+- **第6條**：處理期間 14 日（新設）／10 日（更新）。
+- **第2條「更新」定義**：一座儲槽或一條管線以上之更換；依常見問題，更新加油機或油槍**非屬更新範圍**。
+- 依常見問題，事業取得備查函後，應保存核定之更新完工報告書紙本與備查函，直至再次更新、永久關閉，或移交下一位所有人保存。`
+    }
+  ];
+
+  /* =========================================================
+     2-1. 申報中心「常見問題」官方問答（共 49 題）
+     來源：https://stge.moenv.gov.tw/GroundStorageSTGE/OnlineFaq
+     ========================================================= */
+  const FAQ = [
+{
+"q": "無法申報土壤氣體監測資料?",
+"a": "1. 請確認貯存系統基本資料中，所選擇之監測方式是否為其他的監測方式。 2. 經確認監測方式選擇須變更者，請業者向環保局申請開放修改貯存系統基本資料，於開放期限內自行前往修正監測方式為土壤氣體監測，即可進行「線上申報」。"
+},
+{
+"q": "如何修改輸送設備密閉測試及儲槽密閉測試的歷史資料？",
+"a": "1. 請先確認密閉測試之首次申報的次別，向環保局申請該次別申報資料之退(補)件。 2. 請至退件/補申報選擇該筆首次申報次別資料，並修改為正確資料後，點選「再次正式提送至環保局」。 3. 經環保局認可通過首次申報資料後，其後之次別之申報資料，則可預帶首次申報正確資料，進行各次資料修正。請務必將各次舊有之紀錄先刪除，並同時再新增一筆紀錄，以系統之預帶方式，將正確之管線密閉及儲槽密閉測試資料帶入其後之次別即可。"
+},
+{
+"q": "儲槽連通時之總量申報方式?",
+"a": "當2個(含)以上儲槽為連通狀態時，先確認「儲槽基本資料」已完成連通設定後，於每次申報之總量進出平衡管制資料，應事先將每日數據進行合併計算後再申報。相關操作請參考附件指引。"
+},
+{
+"q": "如何填寫土壤氣體監測井基本資料?",
+"a": "1. 請逐一輸入監測井編號、監測範圍及深度，且每支土壤氣體監測井皆分別建立資料，如20支監測井，須建置20筆資料。 2. 排序設定中，可設定監測井的排列順序，事業可自動編輯。 3. 經系統與「貯存系統基本資料」（於須開放申請修改選單中）之土壤氣體監測井支數比對為正確後，業者才能點選「線上申報」。"
+},
+{
+"q": "如何進行「逾期補通報」？",
+"a": "1.若事業未於檢測5日前(不含檢測當日)進行通報，必須再進行補通報。 2.如事業於通報業面尚未有資料，請先進行「線上通報」。 (1)點選頁面右上方之「新增」，並依檢測機構提供之「採樣行程編號」進行輸入，並將所有欄位完整填寫，即可儲存。 (2)儲存後回到通報頁面最右欄會出現「申請中」與「提出申請」按鈕，請再點擊「提出申請」。 (3)提出申請後，待按鈕變成「下載文件」，請點擊「下載文件」，將補通報申請單填寫完成，傳真至地方環保局。 (4)待環保局開放修改後，請回通報頁面再點擊「通報」。待按鈕顯示為「變更」，即完成補通報。"
+},
+{
+"q": "關於管理辦法第9、20條提及需委託中央主管機關訓練合格並領有證書之人員為之，意思是指哪個單位的合格證書？",
+"a": "有關貯存系統管理辦法第9條及第20條規定之中央主管機關訓練合格證書，指通過環境部國家環境研究院之訓練課程且領有合格證書之人員。"
+},
+{
+"q": "如何將「貯存系統申報中心」加入信任網站?",
+"a": "1. 點選鍵盤Windows鍵 → Windows系統 → 控制台。 2. 點選「網路和網際網路」 → 再次點選「網際網路選項」。 3. 點選「安全性 → 信任的網站 → 網站」。 4. 於「將此網站加到該區域」欄位輸入「貯存系統申報中心」網址(https://stge.moenv.gov.tw/) → 點選「新增」 → 取消勾選「此區域內的所有網站需要伺服器驗證」 → 點選「確定」。 5. 完成上述動作後，點選「確定」，即完成設定。"
+},
+{
+"q": "欲承接既設加油站但尚未取得新管制編號，可否執行密閉測試來釐清污染責任？",
+"a": "欲釐清污染責任需依土污法第8條或第9條規定之土壤污染評估調查及檢測資料，倘承接加油站涉及土地移轉時，則讓與人依土污法第8條規定，將土壤污染評估調查及檢測資料報請環保局備查並提供予受讓人，而受讓人若欲釐清責任，亦可依土污法第9條規定，自行委託廠商針對用地再次進行土壤污染評估調查，並報請環保局審查。。"
+},
+{
+"q": "如何填寫土壤氣體監測井基本資料，順利申報土壤氣體監測？",
+"a": "1.請逐一輸入監測井編號、監測範圍及深度，且每支土壤氣體監測井皆分別建立資料，如20支監測井，須建置20筆資料。 2.排序設定中，可設定監測井的排列順序，事業可自動編輯。 3.經系統與「貯存系統基本資料」（於須開放申請修改選單中）之土壤氣體監測井支數比對為正確後，業者才能點選「線上申報」。"
+},
+{
+"q": "上傳修正後平面配置圖，為何不能刪除舊資料",
+"a": "地下儲槽系統可能進行儲槽、輸送設備或現場監測設備翻修，因此貯存系統申報中心為了紀錄過去及現在地下儲槽平面配置資訊，故將其更改為歷史資料存留。"
+},
+{
+"q": "輸送設備更新汰換，如何填寫更新設置計畫書或更新完工報告書？",
+"a": "1. 事業欲更新輸送設備者，屬地上儲槽系統者應檢具更新設置計畫書，送直轄縣市主管機關備查；屬地下儲槽系統者除檢具更新設置計畫書備查後，應於完工日次日起算30日內，再檢具完工報告書送直轄縣市主管機關備查。 2. 前述更新設置計畫書與更新完工報告書，應以網路方式傳書為之。 3. 事業取得環保局備查函後，應務必保存核定後之更新完工報告書紙本與備查函，直至再次更新、永久關閉，或移交給下一位所有人保存。 4. 相關網路申報之系統操作，請參貯存系統申報中心→最新消息→相關法規、參考指引、作業程序中「防止貯存系統污染地下水體設施及監測設備設置申請與相關表單填寫說明」。"
+},
+{
+"q": "如何查詢「環境檢驗測定機構」(中央主管機關核發許可證之檢驗測定機構)?",
+"a": "1. 連結至國家環境研究院網站，點選「核心業務與研究→檢測技術與方法→類別查詢」。 2. 依監測方式之標準檢測方法名稱或編號查詢，如土壤氣體監測之編號為M203.12C。 3. 點選欲查詢之方法頁面，即可從許可檢驗室的檔案內取得許可證檢測機構之聯絡地址與電話。"
+},
+{
+"q": "委託密閉測試之檢測機構，應注意事項?",
+"a": "1.業者應提供給檢測機構資料：請提供管制編號、儲槽編號、輸送設備編號、輸送設備配置圖。 2.向檢測機構索取檢測報告其內容包括：環境檢驗測定機構許可證影本、貯存系統污染監測人員結業證書影本、各次「採樣行程編號」與預定進場監測日期。"
+},
+{
+"q": "如何申請「暫停使用」(即停用)?",
+"a": "1. 請事業應於暫停使用行為日之15日前，至「貯存系統申報中心」進行網路通報。 2. 事業應另下載「資訊查詢→程序表單下載」之表2（申請(通報)封面）、表6（事業機構基本資料），以及表16（地上、地下儲槽系統暫停使用、復用、永久關閉、轉換用途通報表），填妥後以函文方式向環保局提出申請。 3. 欲申請暫停使用且免監測申報者，請檢附管線抽除輸送物質且儲槽內之物質高度低於2.5公分或體積少於總容量3%之相關證明文件，連同前述表單提送至當地環保局審查，經核准同意後，始依核定期限內毋須申報。"
+},
+{
+"q": "欲停用、歇業或變更營業主體時，是否應辦理土壤污染評估調查及檢測資料？",
+"a": "1. 申請暫停使用(即停用)者，僅應上網通報「營運狀態變更」即可，毋須提送土壤污染評估調查及檢測資料。 2. 申請永久關閉者，請將儲槽內物質及污泥清除，其清除及後續處理行為，並依廢棄物清理法相關規定辦理；當事業屬於「土壤及地下水污染整治法」第9條第1項公告之事業，應於歇業前檢具用地之土壤污染評估調查及檢測資料，報請直轄市、縣(市)主管機關或中央主管機關委託之機關審查。 3. 申請經營主體變更者，且事業屬於「土壤及地下水污染整治法」第9條第1項公告之事業，應於歇業前檢具用地之土壤污染評估調查及檢測資料，報請直轄市、縣(市)主管機關或中央主管機關委託之機關審查。 4. 所提送之土壤污染評估調查及檢測經當地環保局核准備查後，請事業進行營運狀態變更之線上通報，並另填寫表2、表6、表16及檢附相關文件，以函文方式向環保局提出永久關閉(即歇業)或變更經營主體之申請。"
+},
+{
+"q": "儲槽及輸送設備密閉測試未到期，但無法沿用資料？",
+"a": "請先檢查基本資料中儲槽及輸送設備的編號，是否與過去申報資料的編號一致，若不一致，請填寫基本資料異動申請表，傳真至地方環保局，待開放後修改即可進行資料沿用。"
+},
+{
+"q": "已完成土壤氣體監測通報，申報時無法匯入資料，如何解決？",
+"a": "請先留意申報中心的申報e提醒中，如有發生土氣申報之異常處理方，有以下3種方法： 1. 如出現檢測機構未上傳檢測值，請確認檢測機構是否上傳檔案，若確認已上傳，請撥打申報中心專線。 2. 如檢測機構有重新上傳資料，請先至系統點選更新檢驗資料，資料匯入後需隔15分鐘，再點選匯入資料。 3. 如出現○○○檢測人員未新增，請至基本資料管理 → 可直接修改資料 → 檢驗測定機構監測人員資料，新增檢測人員，如檢測人員已新增，仍出現相同訊息，請直接撥打申報中心專線。"
+},
+{
+"q": "如何進行土壤氣體網頁申報？",
+"a": "請先查看是否已完成線上通報作業，若已完成請再依以下步驟進行申報，儲槽、輸送設備、泵島區土壤氣體監測網頁申報→ 新增 → 輸入資料 → 上傳監測申報掃瞄檔 → 點選儲存。"
+},
+{
+"q": "輸送設備、儲槽圓盤圖及油盆照片無法上傳成功？",
+"a": "1.上傳檔案類型應為.JPG、.GIF、.BMP、.PPT、.DOC。 2.請確認檔案大小在20 MB內。 3.因上傳照片限制在2個檔案，建議事業可把照片插入到Word或PowerPoint軟體內，並註明其輸送設備、儲槽及油盆編號。"
+},
+{
+"q": "總量進出平衡管制資料無法上傳?",
+"a": "1. 需確定格式為.CSV檔案。 2. 確認「申報次別」是否正確。 3. 所有欄位除「當日最終存油量油位」之外，皆為必填欄位，不得空白。 4. 請注意英文大、小寫之區別。 5. 『資料年月』欄位：資料日期若為110年1月，於Excel檔案時『資料年月』請填2021/1/1。 6. 上傳之儲槽編號需與「儲槽基本資料」設定之儲槽編號一致。 7. 同月同儲槽編號時，水位檢查日期需相同。 8. 「日期欄位」請依序填寫，如1,2,3....31，若為小月則填寫為1~30，2月請填1~28或1~29。"
+},
+{
+"q": "申報e提醒顯示，過去申報資料發生「未正式提送環保局」者，該如何處理？",
+"a": "向所轄之環保局申請開放延長申報時間，並於延長申報期限內，業者確認申報資料正確無誤後，務必點選「再次正式提送至環保局」，即可完成申報程序。"
+},
+{
+"q": "無法列印?",
+"a": "1. 將「貯存系統申報中心」加入「信任的網站」(操作步驟如附件)。 2. 網頁出現「電腦未安裝列印元件時，提醒使用者安裝ActiveX控制項」之情形，請業者自行安裝後即可列印。 3. 若網頁無出現安裝元件提示，可至「貯存系統申報中心」之「Q&A/FAQ」下載列印元件，請業者壓縮後自行安裝後即可列印。"
+},
+{
+"q": "帳號被鎖定,如何處理？",
+"a": "1.當輸入管制編號及密碼錯誤累計達3次，系統將鎖定帳號，事業則無法登入「貯存系統申報中心」。 2.欲取消鎖定帳號，請點選登入處之「管制編號被鎖」，選擇「線上取消鎖帳號」或「傳真取消鎖帳號」，待環保局解除鎖定狀態後，即可回復至正常可登入狀態。 3.撥打申報中心電話，由專人協助處理。"
+},
+{
+"q": "新增列管事業，如何申請申報中心之帳號密碼?",
+"a": "1.貯存系統申報中心帳號即為管制編號，尚未取得管制編號者，請至[環境保護許可資訊系統]申請，點選「新申請管制編號」。管制編號申請操作流程請參考「資料下載專區→功能操作手冊→新申請管編操作手冊_事業端」。 2.已取得管制編號者，請至[貯存系統申報中心網站]，點選「資訊查詢→程序表單下載」，完成填寫(表2)申請/通報封面與(表3)網路申報帳號密碼申請表單，檢附相關證明文件提出申請。 3.環保局受理申請方式共有發文、傳真2種，請洽當地縣市環保局確認。承辦聯絡電話請點選「資訊查詢→環保局承辦聯絡方式」，公文請參考「資訊查詢→程序表單下載」帳號申請公文範本(表5)。"
+},
+{
+"q": "變更公司負責人時，公司體制皆未變更，是否須重新申請管編，如何在系統進行修改？",
+"a": "1. 負責人變更是否涉及管制編號重新核發，應視該公司法人格是否變更，倘法人格未變更，則毋須重新申請新的管制編號。 2. 請先於EMS內維護基本資料表表(C)→確認步驟一 → 負責人 →公司登記證明文件資料負責人姓名進行維護。 3. 修改完成後，請填寫基本資料異動申請表，檢具公司登記證明文件、經營許可執照後或其他核准文件，由環保局人員協助同步修正。"
+},
+{
+"q": "已請環保局已開放修改基本資料，但仍無法修改?",
+"a": "請業者重新登入「貯存系統申報中心」後，即可進行資料修改。"
+},
+{
+"q": "如何新增土壤氣體監測井(即測漏管)數量？",
+"a": "1. 向所轄之環保局提出修改基本資料之申請，於開放期限內，業者前往「地下儲槽系統基本資料」修改土壤氣體監測井之數目，以及「土壤氣體監測井基本資料」之維護。 2. 業者另至「基本資料管理—可直接修改資料」，更新維護「地下儲槽系統設備配置簡圖」之監測井支數。 3. 由於新增或刪除監測井支數，皆會影響「線上申報」之監測紀錄筆數，請業者應事前向環保局提出修正申請，否則無法順利「線上申報」。"
+},
+{
+"q": "如何更改油槽油品，例如原儲存為98油品欲變更為95油品時?",
+"a": "1.向所轄之環保局申請開放修改「儲槽基本資料」，在開放修改期限內，業者至「基本資料管理→需申請開放修改資料→儲槽基本資料」將原98油品變更儲存油品為95油品即可。 2.該次申報總量進出平衡管制紀錄時，於「每日進、出油量特殊情形說明」之備註欄位，應加以說明並註記本次變更油品種類之更換情形。"
+},
+{
+"q": "如何新增或變更檢驗測定機構監測人員資料？",
+"a": "請至「基本資料管理→可直接修改資料→檢驗測定機構監測人員→新增一筆監測人員之資料」，同時系統將比對監測人員之姓名與證書字號，務必與環管署環訓所之資料一致，否則系統比對為不一致時，將不允許登錄該筆人員資料。"
+},
+{
+"q": "委託土壤氣體之檢測機構進行監測，應注意事項?",
+"a": "1.請提供管制編號、平面配置圖(含土壤氣體監測井編號)給檢測機構。 2.向檢測機構索取：環境檢驗測定機構許可證影本、貯存系統污染監測人員結業證書影本、各次「採樣行程編號」與預定進場監測日期。"
+},
+{
+"q": "油盆液密性檢測應何時申報?",
+"a": "1. 加油機底部防止油品滲漏設施(即油盆)，請每年應進行1次液密性檢測，並於每年9月底前進行「線上申報」。 2. 新設或更新之油盆，應於設施完成設置後1個月內，上網申報「加油機底部防止油品滲漏設施基本資料」，以及網路申報油盆設置後之第一次液密性檢測紀錄。 3. 油盆液密性檢測之監測人員，無須檢具「貯存系統污染監測人員訓練班」結業證書。"
+},
+{
+"q": "因環保署升格為環境部，貯存系統更新網址，且更換TLS憑證，無法登入申報中心",
+"a": "如無法登入，請依所使用的瀏覽器進行網頁瀏覽紀錄刪除操作步驟如下： 1. Google瀏覽器：在鍵盤上按CTRL + H → 點選清除瀏覽資料 → 勾選「瀏覽歷程」與「cookie與其他網站資料」 → 時間範圍請選擇不限時間 → 點選清除資料。如有加入書籤者，請再刪除舊書籤，並重新新增書籤。 2. EDGE瀏覽器：在鍵盤上按CTRL + H → 點歷史紀錄 → 點選清除瀏覽資料 → 勾選「瀏覽歷程」與「cookie與其他網站資料」 → 時間範圍請選擇所有時間 → 點選立即清除。如有將舊網址加入我的最愛中，請先刪除舊有資料，再重新新增新網址至我的最愛中。 3. 如經上述步驟後，仍無法登入，請再FAQ搜尋\"如何將「貯存系統申報中心」加入信任網站\"，將貯存系統申報中心加入信任網站。"
+},
+{
+"q": "原本採取密閉測試監測者，是否需要另外選擇一種監測方式作為自行監測之項目?",
+"a": "依貯存系統辦法第9、20條規定，貯存系統之事業採行土壤氣體監測、地下水監測及槽間監測之事業應自行監測外，應委託檢測機構依貯存系統辦法第11~14、22~24條規定頻率進行監測及申報，採密閉測試及第9條第5項監測方式者，則依辦法規定之頻率進行監測申報，毋須再選擇另一監測方式進行自行監測。"
+},
+{
+"q": "如何查詢貯存系統相關法規？",
+"a": "請至「貯存系統申報中心」網站，點選「資訊查詢→相關法規、參考指引、作業程序下載」查詢。"
+},
+{
+"q": "如何聯絡地方環保局人員?",
+"a": "請至「貯存系統申報中心」網站，點選「資訊查詢→環保局承辦人員聯絡方式」查詢。"
+},
+{
+"q": "首次申報者，登入帳號密碼後，卻無法進行「線上通報/申報」？",
+"a": "1.首次登入「貯存系統申報中心」網站之新設事業，請務必建置該站之儲槽基本資料，否則無法進行「線上通報」或「線上申報」。 2.業者請以帳號與密碼登入後，請點選「基本資料管理」，並進行「可直接修改資料」及「須申請開放修改資料」各項設施之資料建置，完整填寫後，方可進行「線上通報」或「線上申報」。"
+},
+{
+"q": "平面配置圖如何新增及修改？",
+"a": "請至貯存系統申報中心點選基本資料管理，下載基本資料異動申請表，於表單中勾選平面配置圖，填完相關基本資料後，將其傳真至環保局，待開放後即可新增及修改，平面圖上傳後即無法刪除，若發現有誤請再重新上傳即可。"
+},
+{
+"q": "網頁文字出現亂碼?",
+"a": "1.點選「工具→網際網路選項→刪除Cookie」。 2.關閉所有瀏覽器後，重新開啟貯存系統申報中心網頁。 3.點選「檢視→編碼」，選擇「繁體中文」。 4.完成上述步驟操作，系統仍顯示為亂碼，請升級IE瀏覽器版本至11.0。"
+},
+{
+"q": "如何停用申報之管制編號（申請停用申報帳號）？",
+"a": "1.欲停止使用管制編號密碼(即變更營運主體或永久關閉者)，須先進行「線上通報」(務必於永久關閉行為日之15日前完成)。 2.完成通報後，業者至「貯存系統申報中心」網站，點選「資訊查詢→程序表單下載」，下載並填寫表2（申請(通報)封面）、表6（事業機構基本資料），以及表16（地上、地下儲槽系統暫停使用、復用、永久關閉、轉換用途通報表）後，於異動前15日前正式函送至所轄之環保局進行審查。"
+},
+{
+"q": "貯存系統更新加油機或油槍等設備，是否須提送「更新設置計畫書」及「更新完工報告書」？",
+"a": "依「管理辦法」第2條規定，更新係指一座儲槽或一條管線以上之更換，故更新加油機或油槍設備非屬更新範圍，事業毋須提送「更新設置計畫書」及「更新完工報告書」，僅須 於貯存系統申報中心下載基本資料異動申請表，傳真至環保局，待開放後進行修改。"
+},
+{
+"q": "地上、地下儲槽系統更新儲槽或輸送設備，應提送哪些報告書？",
+"a": "1.依貯存系統辦法第4條規定，事業更新地下儲槽系統之儲槽或地上儲槽系統，經目的事業主管機關核准後，應於開工前檢具儲槽之更新設置計畫書送直轄市、縣（市）主管機關備查。 2.依貯存系統辦法第5條規定，事業更新地下儲槽或輸送設備於施工完成日之次日起算30日內，檢具地下儲槽或輸送設備之更新完工報告書送直轄市、縣（市）主管機關備查。 3.前述之計畫書或報告書，應以網路傳輸方式為之。"
+},
+{
+"q": "操作申報檢測紀錄時，「監測人員」無法點選與顯示?",
+"a": "1.業者應先建置「檢驗測定機構監測人員資料」，系統才能將監測人員資料預帶至「線上申報」。 2.請至「貯存系統申報中心」，點選「基本資料管理→可直接修改資料→檢驗測定機構監測人員資料」，點選頁面右上方之「新增」並逐一填寫欄位後，將資料儲存即可。"
+},
+{
+"q": "如何「線上通報」?",
+"a": "1.若所委託之檢測機構將預計3/22進場執行監測，請事業應向檢測機構索取「採樣行程代碼」後，務必於3/16以前完成網路之「線上通報」。 2.「線上通報」之系統操作如下： (1)登入「貯存系統申報中心」，點選「線上申報→線上通報→定期監測通報」。 (2)點選頁面右上方之「新增」，並依檢測機構提供之「採樣行程編號」進行輸入，並將所有欄位完整填寫，即可儲存。"
+},
+{
+"q": "地上、地下儲槽需進行環境監測者，於貯存系統中「線上申報」應申報哪些項目？",
+"a": "1. 請於每年1、5、9月之月底前完成「線上申報」。 2. 申報項目包括前4個月之「總量平衡監測紀錄」以及所採行監測方式之「監測紀錄」。 3. 地下儲槽系統採用管理辦法第9條規定之密閉測試、土壤氣體、地下水監測及槽間監測者；地上儲槽系統採用20條規定之監測方式者，於「線上申報」中，應申報檢測機構之監測紀錄結果。 4. 每年9月之月底前，如事業設有加油機者，業者應增加申報「加油機底部防止滲漏設施之液密性檢測結果」。"
+},
+{
+"q": "事業自行監測之紀錄，是否仍須網路申報?",
+"a": "貯存系統管理辦法規定於每年1月、5月、9月申報之監測紀錄為委託「檢測機構」進行之監測紀錄，對於事業自行監測紀錄可選擇以紙本方式保存3年，或利用申報中心網站之「事業自行監測紀錄」功能，將3年內自行監測紀錄以電子方式保存於網站上，則免再以紙本保存，以節約資源。"
+},
+{
+"q": "監測紀錄是否要留存紙本？",
+"a": "貯存系統管理辦法規定於每年1月、5月、9月申報之監測紀錄為委託「檢測機構」進行之監測紀錄，對於事業自行監測紀錄可選擇以紙本方式保存3年，或利用申報中心網站之「事業自行監測紀錄」功能，將3年內自行監測紀錄以電子方式保存於網站上，則免再以紙本保存，以節約資源。"
+},
+{
+"q": "如何網路申報（更新）設置計畫書或（更新）完工報告書？",
+"a": "EMS系統網路申報操作說明，請至「系統申報中心→最新消息→相關法規、參考指引、作業程序中」查詢「防止貯存系統污染地下水體設施及監測設備設置申請與相關表單填寫說明」。"
+},
+{
+"q": "如何查詢退件/補申報之資訊?",
+"a": "點選「退件/補申報」即可查詢歷次之退件/補申報情形，以及環保主管機關之各次審核結果。"
+},
+{
+"q": "無法點選「正式提送至環保局」?",
+"a": "1. 請事業先勾選同意公開監測資料。 2. 再確認提送之申報資料筆數後，才能正式提送。"
+}
+];
+
+  const QUICK = {
+    public: [
+      "📋 常見問題總覽",
+      "地下儲槽監測頻率？",
+      "申報期限是什麼時候？",
+      "沒申報會被罰嗎？",
+      "帳號被鎖定怎麼辦？",
+      "如何進行逾期補通報？",
+      "如何申請暫停使用？",
+      "水污法指定物質有哪些？",
+      "密閉測試 SOP 重點？",
+      "儲槽汰換有補助嗎？"
+    ],
+    agency: [
+      "📋 常見問題總覽",
+      "地下儲槽監測頻率之法條依據？",
+      "未申報之法規依據？",
+      "指定物質及納管範圍認定？",
+      "密閉測試檢測方法依據？",
+      "設置計畫書備查程序？",
+      "訓練合格證書是指哪個單位？",
+      "歇業是否須辦理土壤污染評估調查？",
+      "儲槽汰換有補助嗎？"
+    ]
+  };
+
+  /* =========================================================
+     3. 模擬檢索（僅在 KB 與 FAQ 內比對；不使用任何外部資料）
+     ========================================================= */
+  function kbRetrieve(question){
+    const q = question.toUpperCase();
+    let best = null, bestScore = 0;
+    KB.forEach(item=>{
+      let s = 0;
+      item.keywords.forEach(k=>{ if(q.includes(k.toUpperCase())) s += k.length >= 3 ? 2 : 1; });
+      if(s > bestScore){ bestScore = s; best = item; }
+    });
+    return bestScore >= 2 ? { item: best, score: bestScore } : null;
+  }
+
+  const STOP = new Set(["如何","怎麼","什麼","是否","請問","可以","應該","需要","為何","哪些","之前","時候","一下","的話"]);
+  function bigrams(text){
+    const t = String(text).normalize("NFKC").toUpperCase().replace(/[\s\p{P}\p{S}]/gu, "");
+    const out = new Set();
+    for(let i = 0; i < t.length - 1; i++){ const g = t.slice(i, i + 2); if(!STOP.has(g)) out.add(g); }
+    return out;
+  }
+  const FAQ_INDEX = FAQ.map(f => ({ f, qg: bigrams(f.q), ag: bigrams(f.a) }));
+  function faqRank(question){
+    const ug = bigrams(question);
+    if(!ug.size) return [];
+    return FAQ_INDEX.map(x=>{
+      let hq = 0, ha = 0;
+      ug.forEach(g=>{ if(x.qg.has(g)) hq++; if(x.ag.has(g)) ha++; });
+      const score = (hq / ug.size) + 0.35 * (ha / ug.size);
+      return { f: x.f, score, hq };
+    }).filter(r => r.hq >= 2 || (r.hq >= 1 && r.score >= 0.25)).sort((a,b)=> b.score - a.score);
+  }
+
+  function faqToMd(a){
+    return a
+      .replace(/\s*(?:^|\s)(\d{1,2})\.\s*(?=\S)/g, "\n$1. ")
+      .replace(/\s*\((\d)\)\s*/g, "\n   - ($1) ")
+      .replace(/^\n/, "")
+      .trim();
+  }
+
+  function faqAnswer(f, tone){
+    const head = tone === "agency" ? `### 申報中心常見問題（官方答覆）` : `### 申報中心官方解答`;
+    return {
+      answer: `${head}\n**Q：${f.q}**\n\n${faqToMd(f.a)}\n\n> 以上內容依「貯存系統申報中心－常見問題」官方答覆原文整理，未另行延伸。`,
+      sources: [{ t: `常見問題：${f.q}`, u: URL.FAQ }],
+      isFaq: true, topic: f.q, cat: "常見問題"
+    };
+  }
+
+  // 個案判定用語：只說明規定，不判定個案
+  const CASE_RE = /罰多少|會被罰|會不會被罰|罰款多少|算不算|是否違規|有沒有違規|會不會違規|我(這樣|的情況|們家|的站|的加油站|們公司)/;
+  function withCaseNote(res, question){
+    if(CASE_RE.test(question) && res.cat !== "查無依據") res.answer += `\n\n> ⚖️ ${CONFIG.CASE_TEXT}`;
+    return res;
+  }
+
+  async function mockAnswer(question, role){
+    await new Promise(r=>setTimeout(r, 600 + Math.random()*400));
+    const tone = (role === "agency" && isAuthed()) ? "agency" : "public";
+    const kb = kbRetrieve(question);
+    const ranked = faqRank(question);
+    const top = ranked[0];
+
+    // 判斷順序：常見問題高度相符 → 法規知識庫 → 常見問題中度相符 → 查無依據（不延伸）
+    if(top && top.score >= 0.75 && !(kb && kb.score >= 3)){
+      return withCaseNote({ ...faqAnswer(top.f, tone), related: ranked.slice(1, 4).filter(r=>r.score >= 0.4).map(r=>r.f.q) }, question);
+    }
+    if(kb){
+      return withCaseNote({ answer: kb.item[tone], sources: kb.item.sources, topic: kb.item.label, cat: "法規",
+               related: ranked.slice(0, 3).filter(r=>r.score >= 0.35).map(r=>r.f.q) }, question);
+    }
+    if(top && top.score >= 0.45){
+      return withCaseNote({ ...faqAnswer(top.f, tone), related: ranked.slice(1, 4).filter(r=>r.score >= 0.35).map(r=>r.f.q) }, question);
+    }
+    return {
+      answer: `### 查無明確依據\n${CONFIG.FALLBACK_TEXT}\n\n本客服僅依「資料來源清單」所列文件回答，清單以外之資料不予延伸。\n\n### 📞 諮詢電話\n${CONTACT_MD}\n- 申報中心 管理辦法諮詢：**(02) 8712-5356**\n- 申報中心 系統操作諮詢：**(02) 8712-5357**`,
+      sources: [{ t: "貯存系統申報中心－相關法規、參考指引、作業程序", u: URL.RULES },
+                { t: "貯存系統申報中心－常見問題", u: URL.FAQ }],
+      topic: "（查無依據）", cat: "查無依據",
+      related: ranked.slice(0, 3).filter(r=>r.score >= 0.25).map(r=>r.f.q)
+    };
+  }
+
+  /* =========================================================
+     4. 真實 API 串接接口（Claude API / RAG 知識庫）
+     ⚠️ API Key 絕不可寫在前端，請建立後端代理。
+     後端須遵守搜尋邊界：
+       (1) 知識庫只收錄 SOURCE_SCOPE 清單文件，每段標註文件名稱、條號、網址
+       (2) 檢索相似度未達門檻時，直接回 FALLBACK_TEXT，不呼叫 LLM
+       (3) 不提供 LLM 任何上網搜尋工具；temperature 設 0
+     前端送出：{ question, role, history, systemPrompt }
+     後端回傳：{ answer, sources:[{t,u}], related?, topic?, cat?:"法規"|"常見問題"|"查無依據" }
+     ========================================================= */
+  async function callLLMBackend(question, role, history){
+    const headers = { "Content-Type": "application/json" };
+    if(role === "agency" && session && session.token) headers.Authorization = "Bearer " + session.token;
+    const res = await fetch(CONFIG.API_ENDPOINT, {
+      method: "POST", headers,
+      body: JSON.stringify({ question: maskPII(question), role, history: history.slice(-8), systemPrompt: buildSystemPrompt(role) })
+    });
+    if(res.status === 401){ forceLogout("登入已失效，請重新登入。"); throw new Error("401"); }
+    if(!res.ok) throw new Error("API 錯誤：" + res.status);
+    return await res.json();
+  }
+
+  async function getAnswer(question, role, history){
+    if(CONFIG.USE_MOCK) return mockAnswer(question, role);
+    try{
+      return withCaseNote(await callLLMBackend(question, role, history), question);
+    }catch(err){
+      console.error(err);
+      return {
+        answer: `### 連線異常\n目前無法連線至法規知識庫，請稍後再試，或來電諮詢：\n${CONTACT_MD}`,
+        sources: [{ t: "貯存系統申報中心", u: URL.RULES }], topic: "（連線異常）", cat: "查無依據"
+      };
+    }
+  }
+
+  /* =========================================================
+     5. 權限驗證模組
+     ========================================================= */
+  function sha256Fallback(ascii){
+    function rr(v,a){ return (v>>>a)|(v<<(32-a)); }
+    const bytes = new TextEncoder().encode(ascii);
+    const K=[], H=[]; let n=2, c=0;
+    while(c<64){ let p=true; for(let i=2;i*i<=n;i++) if(n%i===0){p=false;break;}
+      if(p){ if(c<8) H[c]=(Math.pow(n,1/2)*4294967296)|0; K[c++]=(Math.pow(n,1/3)*4294967296)|0; } n++; }
+    const l=bytes.length, words=[];
+    for(let i=0;i<l;i++) words[i>>2] |= bytes[i] << (24-(i%4)*8);
+    words[l>>2] |= 0x80 << (24-(l%4)*8);
+    const total = ((l+8)>>6)*16+16;
+    for(let i=0;i<total;i++) words[i] = words[i]|0;
+    words[total-1] = l*8;
+    for(let j=0;j<total;j+=16){
+      const w=words.slice(j,j+16), h=H.slice(0);
+      for(let i=0;i<64;i++){
+        if(i>=16){ const w15=w[i-15], w2=w[i-2];
+          w[i]=(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0; }
+        const t1=(h[7]+(rr(h[4],6)^rr(h[4],11)^rr(h[4],25))+((h[4]&h[5])^(~h[4]&h[6]))+K[i]+w[i])|0;
+        const t2=((rr(h[0],2)^rr(h[0],13)^rr(h[0],22))+((h[0]&h[1])^(h[0]&h[2])^(h[1]&h[2])))|0;
+        h.unshift((t1+t2)|0); h[4]=(h[4]+t1)|0; h.pop();
+      }
+      for(let i=0;i<8;i++) H[i]=(H[i]+h[i])|0;
+    }
+    return H.map(x=>(x>>>0).toString(16).padStart(8,"0")).join("");
+  }
+  async function sha256(text){
+    if(window.crypto && crypto.subtle && window.isSecureContext){
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+    return sha256Fallback(text);
+  }
+
+  const SKEY = "stge_agency_session", LKEY = "stge_login_lock";
+  const store = {
+    get(k){ try{ return JSON.parse(sessionStorage.getItem(k)); }catch(e){ return null; } },
+    set(k,v){ try{ sessionStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+    del(k){ try{ sessionStorage.removeItem(k); }catch(e){} }
+  };
+  let session = store.get(SKEY);
+  function isAuthed(){
+    if(!session) return false;
+    if(Date.now() > session.exp){ session = null; store.del(SKEY); return false; }
+    return true;
+  }
+
+  async function verifyLogin(username, password){
+    if(AUTH.AUTH_MODE === "server"){
+      const res = await fetch(AUTH.LOGIN_ENDPOINT, {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok || !data.ok) return null;
+      return { name: data.name || username, token: data.token, exp: Date.now() + (data.expiresIn||3600)*1000 };
+    }
+    const hash = await sha256(`${AUTH.SALT}|${username}|${password}`);
+    const u = AUTH.USERS.find(x => x.user === username && x.hash === hash);
+    if(!u) return null;
+    return { name: u.name, user: u.user, token: null, exp: Date.now() + AUTH.SESSION_MINUTES*60000 };
+  }
+
+  /* =========================================================
+     6. 使用統計（匿名；個資遮蔽）
+     ========================================================= */
+  function maskPII(text){
+    return String(text || "")
+      .normalize("NFKC")
+      .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "【Email已遮蔽】")
+      .replace(/\b[A-Za-z][12890]\d{8}\b/g, "【身分證號已遮蔽】")
+      .replace(/(?:\+?886[-\s]?|0)9\d{2}[-\s]?\d{3}[-\s]?\d{3}/g, "【手機已遮蔽】")
+      .replace(/\(?0\d{1,2}\)?[-\s]?\d{3,4}[-\s]?\d{4}/g, "【電話已遮蔽】")
+      .replace(/\b[A-Za-z]\d{7}\b/g, "【管制編號已遮蔽】")
+      .replace(/\b\d{9,}\b/g, "【號碼已遮蔽】");
+  }
+  const privacyOptOut = ()=>{ try{ return localStorage.getItem("stge_privacy_optout") === "1"; }catch(e){ return false; } };
+  const SID = (()=>{ try{
+      let v = sessionStorage.getItem("stge_sid");
+      if(!v){ v = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()); sessionStorage.setItem("stge_sid", v); }
+      return v; }catch(e){ return ""; } })();
+
+  const Stats = {
+    load(){
+      let list; try{ list = JSON.parse(localStorage.getItem(ANALYTICS.KEY)) || []; }catch(e){ list = []; }
+      const nowT = Date.now(), cut = nowT - ANALYTICS.RETENTION_DAYS*86400000, qcut = nowT - ANALYTICS.Q_RETENTION_DAYS*86400000;
+      let changed = false;
+      list = list.filter(e=>{ if(e.t < cut){ changed = true; return false; } if(e.q && e.t < qcut){ delete e.q; changed = true; } return true; });
+      if(changed) this.save(list);
+      return list;
+    },
+    save(list){ try{ localStorage.setItem(ANALYTICS.KEY, JSON.stringify(list)); }catch(e){} },
+    track(type, data){
+      const ev = Object.assign({ type, t: Date.now(), sid: SID }, data || {});
+      if(ev.q !== undefined){ ev.q = privacyOptOut() ? "" : maskPII(ev.q).slice(0, 200); }
+      if(ANALYTICS.MODE === "server"){
+        const headers = { "Content-Type":"application/json" };
+        if(ev.role === "agency" && session && session.token) headers.Authorization = "Bearer " + session.token;
+        try{ fetch(ANALYTICS.ENDPOINT, { method:"POST", headers, body: JSON.stringify(ev), keepalive:true }).catch(()=>{}); }catch(e){}
+        return;
+      }
+      const list = this.load();
+      list.push(ev);
+      if(list.length > ANALYTICS.MAX_EVENTS) list.splice(0, list.length - ANALYTICS.MAX_EVENTS);
+      this.save(list);
+    },
+    async fetchAll(since){
+      if(ANALYTICS.MODE === "server"){
+        const headers = session && session.token ? { Authorization: "Bearer " + session.token } : {};
+        const res = await fetch(`${ANALYTICS.STATS_ENDPOINT}?from=${since||0}&to=${Date.now()+60000}`, { headers });
+        if(res.status === 401){ forceLogout("登入已失效，請重新登入。"); throw new Error("登入已失效"); }
+        if(!res.ok) throw new Error("統計資料讀取失敗：" + res.status);
+        const data = await res.json();
+        this.lastTotal = data.total;
+        return data.events;
+      }
+      const list = this.load();
+      this.lastTotal = list.length;
+      return list;
+    },
+    lastTotal: 0
+  };
+
+  try{
+    if(!sessionStorage.getItem("stge_visit")){
+      sessionStorage.setItem("stge_visit", "1");
+      Stats.track("visit", { role: "public" });
+    }
+  }catch(e){}
+
+  /* =========================================================
+     7. 輕量 Markdown 轉換（先跳脫 HTML，避免 XSS）
+     ========================================================= */
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function inline(s){
+    return s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/`(.+?)`/g,"<code>$1</code>");
+  }
+  function md(src){
+    const lines = esc(src).split("\n");
+    let html = "", list = null, table = null;
+    const closeList = ()=>{ if(list){ html += `</${list}>`; list = null; } };
+    const closeTable = ()=>{
+      if(table){
+        const head = table[0], rows = table.slice(1);
+        const cells = r => r.replace(/^\||\|$/g,"").split("|").map(c=>inline(c.trim()));
+        html += `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:14px;margin:6px 0;width:100%">`;
+        html += "<tr>" + cells(head).map(c=>`<th style="border:1px solid var(--border);padding:5px 8px;background:var(--brand-soft);text-align:left">${c}</th>`).join("") + "</tr>";
+        rows.filter(r=>!/^\|?[\s\-:|]+\|?$/.test(r)).forEach(r=>{
+          html += "<tr>" + cells(r).map(c=>`<td style="border:1px solid var(--border);padding:5px 8px">${c}</td>`).join("") + "</tr>";
+        });
+        html += "</table></div>"; table = null;
+      }
+    };
+    lines.forEach(raw=>{
+      const l = raw.trimEnd();
+      if(/^\|.*\|$/.test(l.trim())){ closeList(); (table = table || []).push(l.trim()); return; }
+      closeTable();
+      let m;
+      if((m = l.match(/^###\s+(.*)/))){ closeList(); html += `<h3>${inline(m[1])}</h3>`; }
+      else if((m = l.match(/^&gt;\s?(.*)/))){ closeList(); html += `<blockquote>${inline(m[1])}</blockquote>`; }
+      else if((m = l.match(/^\s+[-*]\s+(.*)/)) && list === "ol"){ html += `<li style="list-style:none;margin-left:-.2em">${inline(m[1])}</li>`; }
+      else if((m = l.match(/^\s*[-*]\s+(.*)/))){
+        if(list !== "ul"){ closeList(); html += "<ul>"; list = "ul"; }
+        html += `<li>${inline(m[1])}</li>`;
+      }
+      else if((m = l.match(/^\s*(\d+)\.\s+(.*)/))){
+        if(list !== "ol"){ closeList(); html += `<ol start="${m[1]}">`; list = "ol"; }
+        html += `<li>${inline(m[2])}</li>`;
+      }
+      else if(l.trim() === ""){ closeList(); }
+      else { closeList(); html += `<p>${inline(l)}</p>`; }
+    });
+    closeList(); closeTable();
+    return html;
+  }
+
+  /* =========================================================
+     8. UI 狀態與渲染
+     ========================================================= */
+  const $ = id => document.getElementById(id);
+  const chat = $("chat"), form = $("form"), input = $("input"), send = $("send"), quick = $("quick");
+  const sideQuick = $("sideQuick"), sideFaq = $("sideFaq"), sideSearch = $("sideSearch"), sideEmpty = $("sideEmpty"), sideMode = $("sideMode");
+  const btnPublic = $("btnPublic"), btnAgency = $("btnAgency"), modeDesc = $("modeDesc");
+  const userName = $("userName"), btnLogout = $("btnLogout");
+  const loginMask = $("loginMask"), loginForm = $("loginForm"), loginUser = $("loginUser"),
+        loginPw = $("loginPw"), loginErr = $("loginErr"), loginSubmit = $("loginSubmit"),
+        loginCancel = $("loginCancel"), pwToggle = $("pwToggle");
+
+  let role = "public";
+  let busy = false;
+  let lastFocus = null;
+  const history = [];
+
+  const now = ()=> new Date().toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"});
+  const scrollDown = ()=> requestAnimationFrame(()=>{ chat.scrollTop = chat.scrollHeight; });
+  const hotlineHtml = ()=> `<div class="hotline">📞 諮詢電話${CONTACTS.map(c=>
+      `<div>${esc(c.label)}：<a href="${c.href}">${esc(c.tel)}</a></div>`).join("")}</div>`;
+  const qLinks = list => list.map(q=>`<button type="button" class="q-link" data-q="${esc(q)}">❓ ${esc(q)}</button>`).join("");
+
+  function addUser(text){
+    const el = document.createElement("div");
+    el.className = "msg user";
+    el.innerHTML = `<div class="avatar" aria-hidden="true">🙂</div>
+      <div class="bubble-wrap"><div class="bubble">${esc(text).replace(/\n/g,"<br>")}</div>
+      <div class="meta">${now()}</div></div>`;
+    chat.appendChild(el); scrollDown();
+  }
+  function addTyping(){
+    const el = document.createElement("div");
+    el.className = "msg bot"; el.id = "typing";
+    el.innerHTML = `<div class="avatar" aria-hidden="true">🤖</div>
+      <div class="bubble-wrap"><div class="bubble" aria-label="AI 回覆中"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+    chat.appendChild(el); scrollDown();
+  }
+  function removeTyping(){ const t = $("typing"); if(t) t.remove(); }
+
+  function addBot(answer, sources, plain, opts){
+    opts = opts || {};
+    const el = document.createElement("div");
+    el.className = "msg bot";
+    const tag = role === "agency" ? "🏛️ 機關/委辦人員模式" : "👤 民眾／業者模式";
+    let extra = "";
+    if(opts.related && opts.related.length){
+      extra += `<div class="related"><div class="label">您可能也想問（申報中心常見問題）</div>${qLinks(opts.related)}</div>`;
+    }
+    if(!plain){
+      const chips = (sources||[]).map(s=>
+        `<a class="chip-src" href="${esc(s.u||URL.RULES)}" target="_blank" rel="noopener noreferrer">📘 ${esc(s.t)}</a>`
+      ).join("");
+      extra += `<div class="source-card">
+          <div class="label">參考法規來源（僅限資料來源清單文件）</div>
+          <div class="chips">${chips}</div>
+          <a class="go-btn" href="${URL.RULES}" target="_blank" rel="noopener noreferrer">🔗 前往環境部法規網頁</a>
+          <a class="go-btn faq-btn" href="${URL.FAQ}" target="_blank" rel="noopener noreferrer">❓ 申報中心常見問題網頁</a>
+          ${hotlineHtml()}
+        </div>`;
+    }
+    const tags = plain ? "" : `<span class="mode-tag">${tag}</span>${opts.isFaq ? '<span class="faq-tag">官方常見問題</span>' : ""}`;
+    el.innerHTML = `<div class="avatar" aria-hidden="true">🤖</div>
+      <div class="bubble-wrap">
+        <div class="bubble">${tags}${md(answer)}${opts.html || ""}</div>
+        ${extra}
+        <div class="meta">${now()}</div>
+      </div>`;
+    chat.appendChild(el); scrollDown();
+    return el;
+  }
+
+  function showFaqList(){
+    const el = addBot(`### 📋 申報中心常見問題總覽（共 ${FAQ.length} 題）\n點選題目即可查看官方答覆，也可在下方輸入關鍵字篩選。`, [], true, {
+      html: `<input type="search" class="faq-search" placeholder="篩選題目，例如：密碼、通報、油盆" aria-label="篩選常見問題">
+             <div class="faq-list">${qLinks(FAQ.map(f=>f.q))}</div>`
+    });
+    const box = el.querySelector(".faq-search"), items = el.querySelectorAll(".faq-list .q-link");
+    box.addEventListener("input", ()=>{
+      const k = box.value.trim().normalize("NFKC").toUpperCase();
+      items.forEach(b=>{ b.style.display = !k || b.dataset.q.toUpperCase().includes(k) ? "" : "none"; });
+    });
+  }
+
+  function buildQuickButtons(container, sideStyle){
+    container.innerHTML = "";
+    QUICK[role].forEach((q,i)=>{
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = q;
+      if(i === 0){
+        b.classList.add("faqall");
+        if(sideStyle) b.textContent = "📋 在對話中顯示常見問題總覽";
+        b.addEventListener("click", showFaqList);
+      }else{
+        if(i === QUICK[role].length - 1){ b.classList.add("oos"); b.title = "示範：超出資料來源清單之回覆"; }
+        b.addEventListener("click", ()=> ask(q));
+      }
+      container.appendChild(b);
+    });
+  }
+  function renderQuick(){
+    buildQuickButtons(quick, false); quick.scrollLeft = 0;
+    buildQuickButtons(sideQuick, true);
+    sideMode.textContent = role === "agency" ? "機關/委辦人員" : "民眾／業者";
+  }
+
+  function renderSideFaq(){
+    $("faqCount").textContent = `共 ${FAQ.length} 題`;
+    sideFaq.innerHTML = qLinks(FAQ.map(f=>f.q));
+    sideFaq.addEventListener("click", e=>{ const b = e.target.closest(".q-link"); if(b) ask(b.dataset.q); });
+    sideSearch.addEventListener("input", ()=>{
+      const k = sideSearch.value.trim().normalize("NFKC").toUpperCase();
+      let n = 0;
+      sideFaq.querySelectorAll(".q-link").forEach(b=>{
+        const show = !k || b.dataset.q.toUpperCase().includes(k);
+        b.style.display = show ? "" : "none"; if(show) n++;
+      });
+      sideEmpty.hidden = n > 0;
+    });
+  }
+
+  // 資料來源清單視窗內容
+  function renderSources(){
+    $("srcCount").textContent = SOURCE_COUNT;
+    $("sourcesBody").innerHTML = `
+      <div class="rule"><strong>回答邊界：</strong>本客服僅依下列 ${SOURCE_COUNT} 項文件作答；不使用清單以外之法規、函釋、網路資料或一般知識，不推論、不類推、不換算數字，也不判定個案。</div>
+      ${SOURCE_SCOPE.map(g=>`<h3>${esc(g.group)}（${g.items.length}）</h3><ol>${g.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ol>`).join("")}
+      <p class="small">文件下載：<a href="${URL.RULES}" target="_blank" rel="noopener noreferrer">相關法規、參考指引、作業程序</a>　／　<a href="${URL.FAQ}" target="_blank" rel="noopener noreferrer">常見問題</a></p>
+      <h3>不回答範圍</h3>
+      <ul>${OUT_OF_SCOPE.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
+      <h3>固定回覆</h3>
+      <ul>
+        <li><strong>查無依據：</strong>${esc(CONFIG.FALLBACK_TEXT)}</li>
+        <li><strong>部分有依據：</strong>先回答有依據部分，再註明「${esc(CONFIG.PARTIAL_TEXT)}」</li>
+        <li><strong>個案判定：</strong>${esc(CONFIG.CASE_TEXT)}</li>
+      </ul>
+      <p class="small">以上情況均附屏東縣諮詢電話：${CONTACTS.map(c=>`${esc(c.label)} ${esc(c.tel)}`).join("、")}</p>`;
+  }
+
+  function applyRole(next, silent){
+    role = next;
+    document.body.classList.toggle("agency", role === "agency");
+    btnPublic.setAttribute("aria-pressed", String(role === "public"));
+    btnAgency.setAttribute("aria-pressed", String(role === "agency"));
+    btnAgency.textContent = (role === "agency" || isAuthed()) ? "🏛️ 機關/委辦人員" : "🔒 機關/委辦人員";
+    modeDesc.textContent = role === "agency" ? "機關/委辦人員模式・法條引用" : "民眾／業者模式";
+    userName.textContent = isAuthed() ? `🔓 ${session.name}（已登入）` : "";
+    renderQuick();
+    if(silent) return;
+    addBot(role === "agency"
+      ? `已切換為 **機關/委辦人員模式**（${session.name}）。回覆將引用具體條、項、款；資料範圍與民眾模式相同，不另行延伸。可點上方「📊 使用統計」查看人次與熱區分析。`
+      : "已切換為 **民眾／業者模式**。回覆將以白話說明需要準備什麼、何時申報及監測頻率。", [], true);
+  }
+
+  function requestAgency(){
+    if(role === "agency") return;
+    if(isAuthed()) applyRole("agency");
+    else openLogin();
+  }
+
+  /* ---------- 登入視窗 ---------- */
+  function lockRemainMs(){
+    const lk = store.get(LKEY);
+    return lk && lk.until > Date.now() ? lk.until - Date.now() : 0;
+  }
+  function openLogin(){
+    lastFocus = document.activeElement;
+    loginErr.textContent = "";
+    loginPw.value = "";
+    loginMask.classList.add("open");
+    const remain = lockRemainMs();
+    if(remain){ loginSubmit.disabled = true; loginErr.textContent = `嘗試次數過多，請於 ${Math.ceil(remain/60000)} 分鐘後再試。`; }
+    else loginSubmit.disabled = false;
+    setTimeout(()=> (loginUser.value ? loginPw : loginUser).focus(), 50);
+  }
+  function closeLogin(){
+    loginMask.classList.remove("open");
+    loginPw.value = "";
+    if(lastFocus) lastFocus.focus();
+  }
+
+  async function handleLogin(e){
+    e.preventDefault();
+    if(lockRemainMs()) return;
+    const norm = v => (v || "").normalize("NFKC").replace(/[\s\u200B-\u200D\uFEFF]/g, "");
+    const u = norm(loginUser.value).toLowerCase(), p = norm(loginPw.value);
+    if(!u || !p){ loginErr.textContent = "請輸入帳號及密碼。"; return; }
+    loginSubmit.disabled = true; loginSubmit.textContent = "驗證中…"; loginErr.textContent = "";
+    let result = null;
+    try{ result = await verifyLogin(u, p); }
+    catch(err){ console.error(err); loginErr.textContent = "無法連線至驗證伺服器，請稍後再試。"; }
+    loginSubmit.textContent = "登入";
+    if(result){
+      session = result; store.set(SKEY, session); store.del(LKEY);
+      if(ANALYTICS.MODE !== "server") Stats.track("login", { role: "agency", unit: session.name });
+      loginSubmit.disabled = false;
+      closeLogin();
+      applyRole("agency");
+      return;
+    }
+    if(loginErr.textContent) { loginSubmit.disabled = false; return; }
+    const lk = store.get(LKEY) || { count:0, until:0 };
+    lk.count += 1;
+    if(lk.count >= AUTH.MAX_ATTEMPTS){
+      lk.until = Date.now() + AUTH.LOCK_MINUTES*60000; lk.count = 0;
+      store.set(LKEY, lk);
+      loginErr.textContent = `連續錯誤 ${AUTH.MAX_ATTEMPTS} 次，已鎖定 ${AUTH.LOCK_MINUTES} 分鐘。`;
+      setTimeout(()=>{ loginSubmit.disabled = false; if(loginMask.classList.contains("open")) loginErr.textContent = ""; }, AUTH.LOCK_MINUTES*60000);
+      return;
+    }
+    store.set(LKEY, lk);
+    loginErr.textContent = `帳號或密碼錯誤（剩餘 ${AUTH.MAX_ATTEMPTS - lk.count} 次）。`;
+    loginSubmit.disabled = false;
+    loginPw.value = ""; loginPw.focus();
+  }
+
+  function forceLogout(msg){
+    session = null; store.del(SKEY);
+    closeStats();
+    applyRole("public", true);
+    addBot(msg || "您已登出，已切換回 **民眾／業者模式**。", [], true);
+  }
+
+  setInterval(()=>{ if(role === "agency" && !isAuthed()) forceLogout("登入時間已逾時，已自動登出並切換回 **民眾／業者模式**。"); }, 60000);
+
+  /* =========================================================
+     9. 使用統計儀表板
+     ========================================================= */
+  const statsMask = $("statsMask"), statsBody = $("statsBody"), statsNote = $("statsNote"), statsRange = $("statsRange");
+  let statsDays = 30, statsLastFocus = null;
+  const DAY = 86400000;
+  const WD = ["日","一","二","三","四","五","六"];
+  const pct = (a,b)=> b ? Math.round(a*1000/b)/10 : 0;
+  const startOfDay = t => { const d = new Date(t); d.setHours(0,0,0,0); return d.getTime(); };
+
+  function openStats(){
+    if(!isAuthed()){ openLogin(); return; }
+    statsLastFocus = document.activeElement;
+    $("statsSrc").textContent = ANALYTICS.MODE === "server"
+      ? "資料來源：後端彙整之全站紀錄（已匿名）"
+      : "資料來源：本機瀏覽器紀錄（展示模式，僅含此裝置之使用情形）";
+    statsMask.classList.add("open");
+    renderStats();
+    setTimeout(()=> $("statsClose").focus(), 50);
+  }
+  function closeStats(){
+    if(!statsMask.classList.contains("open")) return;
+    statsMask.classList.remove("open");
+    if(statsLastFocus) statsLastFocus.focus();
+  }
+
+  async function renderStats(){
+    const nowT = Date.now();
+    const since = statsDays === 0 ? 0 : (statsDays === 1 ? startOfDay(nowT) : startOfDay(nowT - (statsDays-1)*DAY));
+    let all;
+    try{ all = await Stats.fetchAll(since); }
+    catch(err){ statsBody.innerHTML = `<p class="empty">${esc(err.message)}</p>`; return; }
+    const ev = all.filter(e => e.t >= since && e.t <= nowT + 60000);
+    const visits = ev.filter(e=>e.type==="visit");
+    const logins = ev.filter(e=>e.type==="login");
+    const qs     = ev.filter(e=>e.type==="question");
+    const qPub = qs.filter(e=>e.role!=="agency").length, qGov = qs.length - qPub;
+    const none = qs.filter(e=>e.cat==="查無依據");
+    statsNote.textContent = `共 ${Stats.lastTotal} 筆事件紀錄（已匿名）`;
+
+    let html = `<div class="kpis">
+      <div class="kpi pub"><div class="v">${visits.length}</div><div class="l">👤 民眾／業者 進站人次</div></div>
+      <div class="kpi"><div class="v">${logins.length}</div><div class="l">🏛️ 承辦／委辦 登入人次</div></div>
+      <div class="kpi"><div class="v">${qs.length}</div><div class="l">💬 總提問數（民眾 ${qPub}／機關 ${qGov}）</div></div>
+      <div class="kpi"><div class="v">${visits.length ? (qPub/visits.length).toFixed(1) : 0}</div><div class="l">📈 民眾平均每人次提問數</div></div>
+      <div class="kpi warn"><div class="v">${pct(none.length, qs.length)}%</div><div class="l">⚠️ 查無依據比例（${none.length} 題）</div></div>
+    </div><div class="stats-grid">`;
+
+    let buckets = [], label;
+    if(statsDays === 1){
+      for(let h=0; h<24; h++) buckets.push({ x:String(h), v:0, l:0 });
+      const bi = e => new Date(e.t).getHours();
+      visits.forEach(e=>buckets[bi(e)].v++); logins.forEach(e=>buckets[bi(e)].l++);
+      label = "今日每小時";
+    }else{
+      const days = statsDays === 0 ? Math.min(60, Math.max(7, Math.ceil((nowT - (all.length ? Math.min(...all.map(e=>e.t)) : nowT))/DAY)+1)) : statsDays;
+      const s0 = startOfDay(nowT - (days-1)*DAY);
+      for(let i=0;i<days;i++){ const d = new Date(s0 + i*DAY); buckets.push({ x:`${d.getMonth()+1}/${d.getDate()}`, v:0, l:0 }); }
+      const bi = e => Math.floor((startOfDay(e.t) - s0)/DAY);
+      visits.forEach(e=>{ const i=bi(e); if(buckets[i]) buckets[i].v++; });
+      logins.forEach(e=>{ const i=bi(e); if(buckets[i]) buckets[i].l++; });
+      label = `近 ${days} 天每日`;
+    }
+    const maxB = Math.max(1, ...buckets.map(b=>b.v+b.l));
+    const step = Math.ceil(buckets.length / 15);
+    html += `<div class="panel wide"><h3>人次趨勢 <span class="sub">（${label}）</span></h3>
+      <div class="legend"><span><i class="c-pub"></i>民眾／業者進站</span><span><i class="c-gov"></i>承辦／委辦登入</span></div>
+      <div class="trend">${buckets.map(b=>`<div class="col" title="${esc(b.x)}：民眾 ${b.v}、承辦/委辦 ${b.l}">
+        <span class="c-pub" style="height:${b.v/maxB*100}%"></span><span class="c-gov" style="height:${b.l/maxB*100}%"></span></div>`).join("")}</div>
+      <div class="trend-x">${buckets.map((b,i)=>`<span>${i%step===0 ? esc(b.x) : ""}</span>`).join("")}</div></div>`;
+
+    const topicMap = new Map();
+    qs.filter(e=>e.cat!=="查無依據").forEach(e=>{
+      const k = e.topic || "（未分類）";
+      const o = topicMap.get(k) || { n:0, p:0, g:0, cat:e.cat };
+      o.n++; if(e.role==="agency") o.g++; else o.p++;
+      topicMap.set(k, o);
+    });
+    const topics = [...topicMap.entries()].sort((a,b)=>b[1].n-a[1].n).slice(0,10);
+    const maxT = topics.length ? topics[0][1].n : 1;
+    html += `<div class="panel"><h3>🔥 高頻提問主題 Top 10</h3>
+      <div class="legend"><span><i class="c-pub"></i>民眾／業者</span><span><i class="c-gov"></i>承辦／委辦</span></div>
+      ${topics.length ? topics.map(([k,o],i)=>`<div class="hrow" title="${esc(k)}">
+        <span class="rk">${i+1}</span><span class="nm">${o.cat==="常見問題"?"❓":"📘"} ${esc(k)}</span>
+        <span class="bar"><span class="c-pub" style="width:${o.p/maxT*100}%"></span><span class="c-gov" style="width:${o.g/maxT*100}%"></span></span>
+        <span class="n">${o.n}</span></div>`).join("") : `<p class="empty">此期間尚無提問紀錄。</p>`}</div>`;
+
+    const cats = [["法規","#2d6bc0"],["常見問題","#13906a"],["查無依據","#d98a1f"]].map(([c,col])=>({ c, col, n: qs.filter(e=>(e.cat||"")===c).length }));
+    html += `<div class="panel"><h3>📂 提問類別分布</h3>
+      ${qs.length ? `<div class="cat-row">${cats.filter(x=>x.n).map(x=>`<div style="width:${pct(x.n,qs.length)}%;background:${x.col}" title="${x.c} ${x.n}">${pct(x.n,qs.length)}%</div>`).join("")}</div>
+      <div class="cat-list">${cats.map(x=>`<div><span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${x.col};margin-right:6px"></i>${x.c==="法規"?"📘 法規知識庫":x.c==="常見問題"?"❓ 申報中心常見問題":"⚠️ 查無依據"}</span><b>${x.n}（${pct(x.n,qs.length)}%）</b></div>`).join("")}</div>` : `<p class="empty">此期間尚無提問紀錄。</p>`}
+      <h3 style="margin-top:12px">⚠️ 待補強題目 <span class="sub">（查無依據之提問；如屬資料來源清單範圍，建議補入知識庫）</span></h3>`;
+    const unmet = new Map();
+    none.forEach(e=>{ const k=(e.q||"").trim(); if(k) unmet.set(k,(unmet.get(k)||0)+1); });
+    const unmetTop = [...unmet.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8);
+    html += unmetTop.length ? `<ol class="unmet">${unmetTop.map(([k,n])=>`<li>${esc(k)}<span class="cnt">×${n}</span></li>`).join("")}</ol>` : `<p class="empty">目前沒有查無依據的提問。</p>`;
+    html += `</div>`;
+
+    const grid = Array.from({length:7},()=>Array(24).fill(0));
+    qs.forEach(e=>{ const d=new Date(e.t); grid[d.getDay()][d.getHours()]++; });
+    const maxH = Math.max(1, ...grid.flat());
+    const order = [1,2,3,4,5,6,0];
+    let peak = { n:0, d:0, h:0 };
+    grid.forEach((r,d)=>r.forEach((n,h)=>{ if(n>peak.n) peak={n,d,h}; }));
+    html += `<div class="panel wide"><h3>🗓️ 提問時段熱區 <span class="sub">（星期 × 時段；顏色越深代表提問越多${peak.n ? `，尖峰：星期${WD[peak.d]} ${peak.h}:00–${peak.h+1}:00（${peak.n} 題）` : ""}）</span></h3>
+      <div class="heat"><span></span>${Array.from({length:24},(_,h)=>`<span class="hl">${h%3===0?h:""}</span>`).join("")}
+      ${order.map(d=>`<span>週${WD[d]}</span>${grid[d].map((n,h)=>`<span class="cell" title="星期${WD[d]} ${h}:00　${n} 題" style="background:${n?`rgba(31,78,140,${0.12+0.88*n/maxH})`:"#f1f4f7"}"></span>`).join("")}`).join("")}</div>
+      <div class="heat-scale">少 ${[0.15,0.35,0.55,0.75,1].map(a=>`<span style="background:rgba(31,78,140,${a})"></span>`).join("")} 多</div></div>`;
+
+    html += `</div>`;
+    statsBody.innerHTML = html;
+  }
+
+  async function exportCsv(){
+    if(ANALYTICS.MODE === "server"){
+      const res = await fetch(ANALYTICS.EXPORT_ENDPOINT, { headers: { Authorization: "Bearer " + (session && session.token) } });
+      if(!res.ok){ alert("匯出失敗：" + res.status); return; }
+      const a = document.createElement("a");
+      a.href = window.URL.createObjectURL(await res.blob());
+      a.download = "貯存系統AI客服_使用紀錄.csv";
+      document.body.appendChild(a); a.click(); a.remove();
+      return;
+    }
+    const all = Stats.load();
+    const typeName = { visit:"進站", login:"登入", question:"提問" };
+    const rows = [["時間","事件類型","身分","單位","提問內容（已遮蔽個資）","命中主題","類別"]];
+    all.forEach(e=>{
+      const d = new Date(e.t);
+      const ts = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+      rows.push([ts, typeName[e.type]||e.type, e.role==="agency"?"承辦/委辦":"民眾/業者", e.unit||"", e.q||"", e.topic||"", e.cat||""]);
+    });
+    const cell = c => `"${String(c).replace(/"/g,'""').replace(/^([=+\-@])/, "'$1")}"`;
+    const csv = "\uFEFF" + rows.map(r=>r.map(cell).join(",")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = window.URL.createObjectURL(new Blob([csv], { type:"text/csv;charset=utf-8" }));
+    const d = new Date();
+    a.download = `貯存系統AI客服_使用紀錄_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  function loadDemo(){
+    if(!confirm("將加入約 30 天的模擬使用紀錄（不會刪除既有紀錄），確定嗎？")) return;
+    const list = Stats.load();
+    const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+    const weighted = [
+      ...Array(9).fill({ topic:"申報期限與申報義務", cat:"法規", q:"申報期限是什麼時候？" }),
+      ...Array(7).fill({ topic:"地下儲槽監測頻率", cat:"法規", q:"土壤氣體多久測一次？" }),
+      ...Array(6).fill({ topic:"帳號被鎖定,如何處理？", cat:"常見問題", q:"帳號被鎖住了" }),
+      ...Array(5).fill({ topic:"如何進行「逾期補通報」？", cat:"常見問題", q:"忘記通報怎麼補" }),
+      ...Array(4).fill({ topic:"總量進出平衡管制資料無法上傳?", cat:"常見問題", q:"總量CSV上傳失敗" }),
+      ...Array(4).fill({ topic:"密閉測試", cat:"法規", q:"密閉測試要準備什麼" }),
+      ...Array(3).fill({ topic:"油盆液密性檢測應何時申報?", cat:"常見問題", q:"油盆什麼時候報" }),
+      ...Array(3).fill({ topic:"如何申請「暫停使用」(即停用)?", cat:"常見問題", q:"加油站停業要申請嗎" }),
+      ...Array(2).fill({ topic:"新設／更新設置程序", cat:"法規", q:"新設儲槽要送什麼" }),
+      ...Array(2).fill({ topic:"指定物質與納管範圍", cat:"法規", q:"哪些油品要列管" }),
+      { topic:"（查無依據）", cat:"查無依據", q:"儲槽汰換有補助嗎？" },
+      { topic:"（查無依據）", cat:"查無依據", q:"土壤採樣費用多少" },
+      { topic:"（查無依據）", cat:"查無依據", q:"儲槽汰換有補助嗎？" },
+      { topic:"（查無依據）", cat:"查無依據", q:"消防檢查要準備什麼" }
+    ];
+    const hourW = [0,0,0,0,0,0,1,2,5,9,10,8,4,6,9,10,8,5,3,2,2,1,1,0];
+    const pickHour = ()=>{ const s=hourW.reduce((a,b)=>a+b,0); let r=Math.random()*s; for(let h=0;h<24;h++){ r-=hourW[h]; if(r<0) return h; } return 10; };
+    const today = startOfDay(Date.now());
+    for(let d=29; d>=0; d--){
+      const day = today - d*DAY, wd = new Date(day).getDay();
+      const nVisit = Math.round((wd===0||wd===6 ? 3 : 10) + Math.random()*8);
+      for(let i=0;i<nVisit;i++){
+        const t = day + pickHour()*3600000 + Math.floor(Math.random()*3600000);
+        if(t > Date.now()) continue;
+        list.push({ type:"visit", t, role:"public", demo:true });
+        const nq = 1 + Math.floor(Math.random()*3);
+        for(let j=0;j<nq;j++){ const w = pick(weighted); list.push({ type:"question", t:t+j*60000, role:"public", q:w.q, topic:w.topic, cat:w.cat, demo:true }); }
+      }
+      const nLogin = wd===0||wd===6 ? 0 : Math.floor(Math.random()*4);
+      for(let i=0;i<nLogin;i++){
+        const t = day + pickHour()*3600000;
+        if(t > Date.now()) continue;
+        list.push({ type:"login", t, role:"agency", unit: pick(["屏東縣環保局","委辦單位"]), demo:true });
+        const w = pick(weighted.filter(x=>x.cat!=="查無依據"));
+        list.push({ type:"question", t:t+120000, role:"agency", q:w.q, topic:w.topic, cat:w.cat, demo:true });
+      }
+    }
+    list.sort((a,b)=>a.t-b.t);
+    Stats.save(list);
+    renderStats();
+  }
+
+  function clearStats(){
+    if(!confirm("確定清除本機所有使用紀錄？此動作無法復原。")) return;
+    Stats.save([]);
+    renderStats();
+  }
+
+  /* ---------- 問答 ---------- */
+  async function ask(text){
+    const q = text.trim();
+    if(!q || busy) return;
+    if(role === "agency" && !isAuthed()){ forceLogout("登入時間已逾時，請重新登入。"); return; }
+    busy = true; send.disabled = true;
+    addUser(q);
+    input.value = ""; autoGrow();
+    addTyping();
+    const res = await getAnswer(q, role, history);
+    removeTyping();
+    addBot(res.answer, res.sources, false, { related: res.related, isFaq: res.isFaq });
+    Stats.track("question", {
+      role: (role === "agency" && isAuthed()) ? "agency" : "public",
+      q, topic: res.topic || "（未分類）", cat: res.cat || "法規"
+    });
+    history.push({ role:"user", content:q }, { role:"assistant", content:res.answer });
+    busy = false; send.disabled = false;
+  }
+  function autoGrow(){
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 120) + "px";
+  }
+
+  /* ---------- 通用視窗（資料來源清單／隱私說明） ---------- */
+  const sourcesMask = $("sourcesMask"), privacyMask = $("privacyMask"), consent = $("consent"), optOut = $("optOut");
+  let docLastFocus = null;
+  function openDoc(mask, closeId){
+    docLastFocus = document.activeElement;
+    mask.classList.add("open");
+    setTimeout(()=> $(closeId).focus(), 50);
+  }
+  function closeDoc(mask){
+    if(!mask.classList.contains("open")) return;
+    mask.classList.remove("open");
+    if(docLastFocus) docLastFocus.focus();
+  }
+  const ackKey = "stge_privacy_ack";
+  try{ if(localStorage.getItem(ackKey) !== ANALYTICS.PRIVACY_VER) consent.hidden = false; }catch(e){ consent.hidden = false; }
+  const ackConsent = ()=>{ consent.hidden = true; try{ localStorage.setItem(ackKey, ANALYTICS.PRIVACY_VER); }catch(e){} };
+
+  /* ---------- 事件 ---------- */
+  chat.addEventListener("click", e=>{ const b = e.target.closest(".q-link"); if(b) ask(b.dataset.q); });
+  btnPublic.addEventListener("click", ()=>{ if(role !== "public") applyRole("public"); });
+  btnAgency.addEventListener("click", requestAgency);
+  btnLogout.addEventListener("click", ()=> forceLogout());
+  $("btnStats").addEventListener("click", openStats);
+  $("statsClose").addEventListener("click", closeStats);
+  statsMask.addEventListener("click", e=>{ if(e.target === statsMask) closeStats(); });
+  statsRange.addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    statsDays = Number(b.dataset.r);
+    statsRange.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed", String(x === b)));
+    renderStats();
+  });
+  $("statsCsv").addEventListener("click", exportCsv);
+  $("statsDemo").addEventListener("click", loadDemo);
+  $("statsClear").addEventListener("click", clearStats);
+  if(ANALYTICS.MODE === "server"){ $("statsDemo").hidden = true; $("statsClear").hidden = true; }
+
+  document.addEventListener("click", e=>{
+    if(e.target.closest("[data-open-privacy]")){ optOut.checked = privacyOptOut(); openDoc(privacyMask, "privacyClose"); }
+    else if(e.target.closest("[data-open-sources]")){ openDoc(sourcesMask, "sourcesClose"); }
+  });
+  $("consentOk").addEventListener("click", ackConsent);
+  $("privacyClose").addEventListener("click", ()=> closeDoc(privacyMask));
+  $("privacyOk").addEventListener("click", ()=>{ ackConsent(); closeDoc(privacyMask); });
+  privacyMask.addEventListener("click", e=>{ if(e.target === privacyMask) closeDoc(privacyMask); });
+  $("sourcesClose").addEventListener("click", ()=> closeDoc(sourcesMask));
+  sourcesMask.addEventListener("click", e=>{ if(e.target === sourcesMask) closeDoc(sourcesMask); });
+  optOut.addEventListener("change", ()=>{ try{ localStorage.setItem("stge_privacy_optout", optOut.checked ? "1" : "0"); }catch(e){} });
+
+  loginForm.addEventListener("submit", handleLogin);
+  loginCancel.addEventListener("click", closeLogin);
+  loginMask.addEventListener("click", e=>{ if(e.target === loginMask) closeLogin(); });
+  document.addEventListener("keydown", e=>{
+    if(e.key !== "Escape") return;
+    if(privacyMask.classList.contains("open")) closeDoc(privacyMask);
+    else if(sourcesMask.classList.contains("open")) closeDoc(sourcesMask);
+    else if(statsMask.classList.contains("open")) closeStats();
+    else if(loginMask.classList.contains("open")) closeLogin();
+  });
+  pwToggle.addEventListener("click", ()=>{
+    const show = loginPw.type === "password";
+    loginPw.type = show ? "text" : "password";
+    pwToggle.textContent = show ? "隱藏" : "顯示";
+    pwToggle.setAttribute("aria-label", show ? "隱藏密碼" : "顯示密碼");
+  });
+  form.addEventListener("submit", e=>{ e.preventDefault(); ask(input.value); });
+  input.addEventListener("input", autoGrow);
+  input.addEventListener("keydown", e=>{
+    if(e.key === "Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); ask(input.value); }
+  });
+
+  /* ---------- 初始化 ---------- */
+  if(window.innerWidth < 900) $("hdrNotice").removeAttribute("open");
+  renderSources();
+  renderSideFaq();
+  applyRole("public", true);
+  addBot(
+`您好！我是 **貯存系統 AI 法規客服** 👋
+本客服**僅依資料來源清單所列 ${SOURCE_COUNT} 項文件**回答（申報中心收錄之法規、檢測方法、SOP、參考指引，以及 **${FAQ.length} 題常見問題官方答覆**），清單以外之資料一律不回答、不自行延伸。
+
+- 點選「📋 常見問題總覽」（手機在下方、電腦在右側欄）可瀏覽全部題目
+- 是否違規、如何處分等個案判定，請洽轄區環保局
+- 🔒 **機關/委辦人員** 模式（法條引用式回覆、使用統計）需登入授權帳號後使用
+
+📞 諮詢電話
+${CONTACT_MD}`, [], true);
+})();
+</script>
+</body>
+</html>

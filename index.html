@@ -588,7 +588,7 @@
      STAFF：機關/委辦人員授權名單，可填完整 Email 或以 @ 開頭之網域 */
   const GAUTH = {
     CLIENT_ID: "849908870776-an8sbbt7dltr37ptt63rckrnvv4u59b1.apps.googleusercontent.com",
-    REQUIRE_LOGIN: true,            // true：所有人須先以 Google 帳號登入才能使用
+    REQUIRE_LOGIN: false,   // 民眾／業者免登入；機關/委辦人員模式仍須 Google 登入
     SESSION_MINUTES: 480,           // 登入有效時間（分鐘）
     STAFF: [
       { match: "@ems.ptepb.gov.tw", unit: "屏東縣環保局" },   // ← 請改為實際網域或 Email

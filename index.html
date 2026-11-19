@@ -33,7 +33,10 @@
   .title p{ margin:2px 0 0; font-size:12px; opacity:.92; }
   .status-dot{ display:inline-block; width:7px; height:7px; border-radius:50%; background:#7dffb3; margin-right:4px; vertical-align:middle; }
   .user-line{ display:none; margin-top:3px; font-size:11.5px; }
-  body.agency .user-line{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  body.signed .user-line{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .user-line .g-avatar{ width:18px; height:18px; border-radius:50%; vertical-align:middle; }
+  .hbtn.stats{ display:none; }
+  body.agency .hbtn.stats{ display:inline-block; }
   .hbtn{ border:1px solid rgba(255,255,255,.7); background:transparent; color:#fff; font:inherit; font-size:11px; padding:1px 8px; border-radius:999px; cursor:pointer; }
   .hbtn.stats{ background:#fff; color:var(--gov); border-color:#fff; font-weight:700; }
   .hbtn:focus-visible{ outline:2px solid #fff; outline-offset:1px; }
@@ -139,7 +142,7 @@
   .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
 
   /* ---------- 視窗 ---------- */
-  .modal-mask{ position:fixed; inset:0; background:rgba(10,25,45,.55); display:none; align-items:center; justify-content:center; padding:16px; z-index:50; }
+  .modal-mask{ position:fixed; inset:0; background:rgba(10,25,45,.55); display:none; align-items:center; justify-content:center; padding:16px; z-index:70; }
   .modal-mask.open{ display:flex; animation:pop .2s ease; }
   .modal{ width:100%; max-width:380px; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,.25); }
   .modal-hd{ background:linear-gradient(135deg,var(--gov),var(--gov-2)); color:#fff; padding:14px 18px; position:relative; }
@@ -167,6 +170,24 @@
   .modal-actions button:focus-visible,.pw-toggle:focus-visible{ outline:2px solid var(--gov); outline-offset:2px; }
   .modal-ft{ margin-top:12px; font-size:12px; color:var(--muted); line-height:1.5; }
 
+  /* Google 登入 */
+  .g-btn{ display:flex; justify-content:center; min-height:44px; margin:6px 0 10px; }
+  .g-note{ font-size:13px; color:var(--muted); line-height:1.6; margin:0 0 6px; }
+  .g-who{ font-size:13px; background:#f5f7f6; border:1px solid var(--border); border-radius:10px; padding:6px 10px; margin-bottom:8px; }
+  .demo-box{ border:1px dashed #e0a84a; background:var(--warn-soft); border-radius:10px; padding:8px 10px; font-size:12.5px; color:var(--warn); margin:4px 0 10px; }
+  .demo-box[hidden]{ display:none; }
+  .demo-box .demo-act{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .demo-box button{ flex:1 1 140px; font:inherit; font-size:13px; padding:6px 8px; border-radius:8px; border:1px solid var(--warn); background:#fff; color:var(--warn); cursor:pointer; }
+  .demo-box button:focus-visible{ outline:2px solid var(--warn); outline-offset:2px; }
+  .gate{ position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; padding:16px;
+    background:linear-gradient(135deg,rgba(11,110,79,.92),rgba(19,144,106,.92)); }
+  .gate[hidden]{ display:none; }
+  .gate-card{ width:100%; max-width:420px; background:#fff; border-radius:18px; padding:24px 22px 18px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.25); }
+  .gate-card .logo-big{ font-size:38px; line-height:1; }
+  .gate-card h2{ margin:8px 0 4px; font-size:19px; color:#0b6e4f; }
+  .gate-card .g-note{ text-align:left; }
+  .gate-card .gate-ft{ margin-top:10px; padding-top:8px; border-top:1px dashed var(--border); font-size:12px; color:var(--muted); line-height:1.6; }
+  .gate-card .gate-ft a{ color:#0b6e4f; font-weight:600; text-decoration:none; }
   /* 統計儀表板 */
   .modal.stats-modal{ max-width:1180px; max-height:calc(100dvh - 32px); display:flex; flex-direction:column; }
   .stats-bd{ overflow-y:auto; padding:14px 18px 18px; font-size:14px; }
@@ -264,6 +285,8 @@
   }
   @media (min-width:1300px){ .side{ width:400px; } }
 </style>
+<!-- Google 登入（Google Identity Services） -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div class="app">
@@ -334,37 +357,56 @@
   </div>
 </div>
 
-<!-- 登入視窗 -->
+<!-- 登入視窗（機關/委辦人員：Google 帳號登入） -->
 <div class="modal-mask" id="loginMask" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
   <div class="modal">
     <div class="modal-hd">
       <h2 id="loginTitle">🔒 機關/委辦人員登入</h2>
-      <p>本模式僅限授權之機關及委辦單位人員使用</p>
+      <p>請使用已列入授權名單之 Google 帳號登入</p>
+      <button type="button" class="modal-x" id="loginX" aria-label="關閉">✕</button>
     </div>
-    <form class="modal-bd" id="loginForm" autocomplete="on">
-      <div class="field">
-        <label for="loginUser">帳號</label>
-        <input id="loginUser" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required />
-      </div>
-      <div class="field">
-        <label for="loginPw">密碼</label>
-        <div class="pw-wrap">
-          <input id="loginPw" name="password" type="password" autocomplete="current-password" required />
-          <button type="button" class="pw-toggle" id="pwToggle" aria-label="顯示密碼">顯示</button>
+    <div class="modal-bd">
+      <div class="g-who" id="loginWho" hidden></div>
+      <p class="g-note">點選下方按鈕後，將於 <strong>Google 官方視窗</strong>輸入帳號密碼；本網站<strong>不會取得您的密碼</strong>。</p>
+      <div class="g-btn" id="gBtnLogin"></div>
+      <div class="demo-box" id="demoLogin" hidden>
+        ⚠️ 尚未設定 Google 用戶端 ID，目前為展示模式。
+        <div class="demo-act">
+          <button type="button" data-demo="staff">展示：以機關/委辦人員登入</button>
         </div>
       </div>
-      <div class="login-hint">帳號不分大小寫；全形符號（如＠）會自動轉為半形。</div>
       <div class="login-err" id="loginErr" aria-live="assertive"></div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" id="loginCancel">取消</button>
-        <button type="submit" class="btn-login" id="loginSubmit">登入</button>
       </div>
       <div class="modal-ft">
-        帳號申請或忘記密碼，請洽：<br>
+        授權名單申請，請洽：<br>
         屏東縣政府環境保護局 (08)735-1922#OOO<br>
         屏東縣委辦公司諮詢 (07)323-2753#OOO
       </div>
-    </form>
+    </div>
+  </div>
+</div>
+
+<!-- 進站登入畫面（Google 帳號登入後才能使用） -->
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle" hidden>
+  <div class="gate-card">
+    <div class="logo-big" aria-hidden="true">🛢️</div>
+    <h2 id="gateTitle">貯存系統 AI 法規客服</h2>
+    <p class="g-note">請先以 <strong>Google 帳號</strong>登入後開始使用。帳號密碼於 Google 官方視窗輸入，本網站<strong>不會取得您的密碼</strong>，亦不將姓名、Email 寫入使用統計。</p>
+    <div class="g-btn" id="gBtnGate"></div>
+    <div class="demo-box" id="demoGate" hidden>
+      ⚠️ 尚未設定 Google 用戶端 ID，目前為展示模式。
+      <div class="demo-act">
+        <button type="button" data-demo="public">展示：民眾／業者登入</button>
+        <button type="button" data-demo="staff">展示：機關/委辦人員登入</button>
+      </div>
+    </div>
+    <div class="login-err" id="gateErr" aria-live="assertive"></div>
+    <div class="gate-ft">
+      <button type="button" class="link-btn dark" data-open-privacy>隱私權及個資保護說明</button><br>
+      諮詢電話：屏東縣政府環境保護局 <a href="tel:+88687351922">(08)735-1922#OOO</a>　／　屏東縣委辦公司諮詢 <a href="tel:+88673232753">(07)323-2753#OOO</a>
+    </div>
   </div>
 </div>
 
@@ -408,6 +450,7 @@
         <tr><td>民眾／業者</td><td>進站時間、提問內容（自動遮蔽電話、身分證字號、Email、管制編號）、系統判定之提問主題及類別</td><td rowspan="2">姓名、電話、地址、IP 位址、裝置識別碼、定位資訊</td></tr>
         <tr><td>機關/委辦人員</td><td>登入時間、所屬單位名稱、提問內容及主題</td></tr>
       </table>
+      <p class="small"><strong>Google 帳號登入：</strong>本網站僅接收 Google 回傳之姓名、Email 及大頭貼，用於顯示登入狀態及判定是否為機關/委辦人員授權帳號；上述資料僅暫存於您的瀏覽器分頁，關閉分頁或登出即清除，<strong>不寫入使用統計紀錄</strong>，亦不會取得您的 Google 密碼。</p>
       <p class="small">為區分同一次瀏覽，系統會產生一組<strong>隨機工作階段代碼</strong>，關閉分頁即失效，無法回推個人身分。</p>
       <h3>四、利用期間、地區、對象及方式</h3>
       <ul>
@@ -538,20 +581,21 @@
     "與貯存系統法規及申報無關之問題"
   ];
 
-  /* 機關/委辦人員登入設定
-     AUTH_MODE："local"（展示用，加鹽 SHA-256 雜湊比對）／"server"（正式用，後端 /api/login 驗證）
-     新增帳號雜湊值 = SHA256( SALT + "|" + 帳號(小寫) + "|" + 密碼 ) */
-  const AUTH = {
-    AUTH_MODE: "local",
-    LOGIN_ENDPOINT: "/api/login",
-    SALT: "STGE-PT-2026",
-    SESSION_MINUTES: 60,
-    MAX_ATTEMPTS: 5,
-    LOCK_MINUTES: 5,
-    USERS: [
-      // 展示帳號：admin / Ptepb@2026；consultant / Stantec@2026（上線前請更換）
-      { user: "admin",      name: "屏東縣環保局", hash: "eacb45c87795dc9683e5bb5d82cd7ef79148c3016f652d156f77fd54fbbf9942" },
-      { user: "consultant", name: "委辦單位",     hash: "070b8c21bc74b46b0c0ee4b394ab55fa39cb06cdfdb1fe5bbc4c4bd2f67c11dd" }
+  /* Google 帳號登入設定
+     1. 至 Google Cloud Console 建立「OAuth 用戶端 ID（網頁應用程式）」
+     2.「已授權的 JavaScript 來源」加入：https://jiaren-source.github.io（本機測試再加 http://localhost:8000）
+     3. 將用戶端 ID 貼到 CLIENT_ID；未設定前自動進入「展示模式」
+     STAFF：機關/委辦人員授權名單，可填完整 Email 或以 @ 開頭之網域 */
+  const GAUTH = {
+    CLIENT_ID: "YOUR_CLIENT_ID.apps.googleusercontent.com",
+    REQUIRE_LOGIN: true,            // true：所有人須先以 Google 帳號登入才能使用
+    SESSION_MINUTES: 480,           // 登入有效時間（分鐘）
+    STAFF: [
+      { match: "@ems.ptepb.gov.tw", unit: "屏東縣環保局" },   // ← 請改為實際網域或 Email
+      { match: "@stantec.com",      unit: "委辦單位" },
+      { match: "jiaren.tsai@gmail.com",   unit: "委辦單位" },
+      { match: "rose12010916@gmail.com",  unit: "委辦單位" }
+      // { match: "someone@gmail.com", unit: "屏東縣環保局" },
     ]
   };
 
@@ -1176,66 +1220,88 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
   /* =========================================================
      5. 權限驗證模組
      ========================================================= */
-  function sha256Fallback(ascii){
-    function rr(v,a){ return (v>>>a)|(v<<(32-a)); }
-    const bytes = new TextEncoder().encode(ascii);
-    const K=[], H=[]; let n=2, c=0;
-    while(c<64){ let p=true; for(let i=2;i*i<=n;i++) if(n%i===0){p=false;break;}
-      if(p){ if(c<8) H[c]=(Math.pow(n,1/2)*4294967296)|0; K[c++]=(Math.pow(n,1/3)*4294967296)|0; } n++; }
-    const l=bytes.length, words=[];
-    for(let i=0;i<l;i++) words[i>>2] |= bytes[i] << (24-(i%4)*8);
-    words[l>>2] |= 0x80 << (24-(l%4)*8);
-    const total = ((l+8)>>6)*16+16;
-    for(let i=0;i<total;i++) words[i] = words[i]|0;
-    words[total-1] = l*8;
-    for(let j=0;j<total;j+=16){
-      const w=words.slice(j,j+16), h=H.slice(0);
-      for(let i=0;i<64;i++){
-        if(i>=16){ const w15=w[i-15], w2=w[i-2];
-          w[i]=(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0; }
-        const t1=(h[7]+(rr(h[4],6)^rr(h[4],11)^rr(h[4],25))+((h[4]&h[5])^(~h[4]&h[6]))+K[i]+w[i])|0;
-        const t2=((rr(h[0],2)^rr(h[0],13)^rr(h[0],22))+((h[0]&h[1])^(h[0]&h[2])^(h[1]&h[2])))|0;
-        h.unshift((t1+t2)|0); h[4]=(h[4]+t1)|0; h.pop();
-      }
-      for(let i=0;i<8;i++) H[i]=(H[i]+h[i])|0;
-    }
-    return H.map(x=>(x>>>0).toString(16).padStart(8,"0")).join("");
-  }
-  async function sha256(text){
-    if(window.crypto && crypto.subtle && window.isSecureContext){
-      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
-    }
-    return sha256Fallback(text);
-  }
-
-  const SKEY = "stge_agency_session", LKEY = "stge_login_lock";
+  const SKEY = "stge_google_session";
   const store = {
     get(k){ try{ return JSON.parse(sessionStorage.getItem(k)); }catch(e){ return null; } },
     set(k,v){ try{ sessionStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
     del(k){ try{ sessionStorage.removeItem(k); }catch(e){} }
   };
   let session = store.get(SKEY);
-  function isAuthed(){
+  const G_CONFIGURED = !/^YOUR_CLIENT_ID/.test(GAUTH.CLIENT_ID);
+  const gReady = ()=> !!(window.google && google.accounts && google.accounts.id);
+
+  // 已以 Google 帳號登入（含民眾）
+  function isSignedIn(){
     if(!session) return false;
     if(Date.now() > session.exp){ session = null; store.del(SKEY); return false; }
     return true;
   }
+  // 機關/委辦人員授權（Google 帳號在授權名單內）
+  function isAuthed(){ return isSignedIn() && !!session.staff; }
 
-  async function verifyLogin(username, password){
-    if(AUTH.AUTH_MODE === "server"){
-      const res = await fetch(AUTH.LOGIN_ENDPOINT, {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json().catch(()=>({}));
-      if(!res.ok || !data.ok) return null;
-      return { name: data.name || username, token: data.token, exp: Date.now() + (data.expiresIn||3600)*1000 };
+  function parseJwt(token){
+    try{
+      const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      const json = decodeURIComponent(atob(b64).split("").map(c=>"%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join(""));
+      return JSON.parse(json);
+    }catch(e){ return null; }
+  }
+  function matchStaff(email){
+    const e = String(email || "").toLowerCase().trim();
+    return GAUTH.STAFF.find(x=>{
+      const m = String(x.match || "").toLowerCase().trim();
+      return m && (m.startsWith("@") ? e.endsWith(m) : e === m);
+    }) || null;
+  }
+  function makeSession(p, token){
+    const st = matchStaff(p.email);
+    return {
+      name: p.name || p.email, email: p.email, picture: p.picture || "",
+      staff: !!st, unit: st ? st.unit : "",
+      token: token || null,
+      exp: Date.now() + GAUTH.SESSION_MINUTES*60000
+    };
+  }
+  // Google 回傳登入憑證（ID Token）
+  function onGoogleCredential(resp){
+    const p = parseJwt(resp && resp.credential);
+    if(!p || !p.email){ showAuthError("Google 登入失敗，請再試一次。"); return; }
+    if(p.email_verified === false){ showAuthError("此 Google 帳號 Email 尚未驗證，無法登入。"); return; }
+    if(GAUTH.CLIENT_ID && p.aud && p.aud !== GAUTH.CLIENT_ID){ showAuthError("登入憑證不符，請重新登入。"); return; }
+    completeSignIn(makeSession(p, resp.credential));
+  }
+  function demoSignIn(kind){
+    const st = GAUTH.STAFF[0] || { match:"@demo.gov.tw", unit:"屏東縣環保局" };
+    const email = kind === "staff"
+      ? (st.match.startsWith("@") ? "demo" + st.match : st.match)
+      : "demo.public@gmail.com";
+    completeSignIn(makeSession({ name: kind === "staff" ? "展示帳號（機關）" : "展示帳號（民眾）", email }, null));
+  }
+  function initGoogle(tries){
+    tries = tries || 0;
+    if(!G_CONFIGURED){
+      $("demoGate").hidden = false; $("demoLogin").hidden = false;
+      return;
     }
-    const hash = await sha256(`${AUTH.SALT}|${username}|${password}`);
-    const u = AUTH.USERS.find(x => x.user === username && x.hash === hash);
-    if(!u) return null;
-    return { name: u.name, user: u.user, token: null, exp: Date.now() + AUTH.SESSION_MINUTES*60000 };
+    if(!gReady()){
+      if(tries < 50) setTimeout(()=> initGoogle(tries + 1), 200);
+      else showAuthError("Google 登入元件載入失敗，請確認網路連線後重新整理頁面。");
+      return;
+    }
+    google.accounts.id.initialize({
+      client_id: GAUTH.CLIENT_ID,
+      callback: onGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true,
+      ux_mode: "popup",
+      itp_support: true
+    });
+    renderGoogleButtons();
+  }
+  function renderGoogleButtons(){
+    if(!G_CONFIGURED || !gReady()) return;
+    const opt = { type:"standard", theme:"outline", size:"large", text:"signin_with", shape:"pill", locale:"zh-TW", logo_alignment:"left" };
+    ["gBtnGate", "gBtnLogin"].forEach(id=>{ const el = $(id); if(el){ el.innerHTML = ""; google.accounts.id.renderButton(el, opt); } });
   }
 
   /* =========================================================
@@ -1361,9 +1427,9 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
   const sideQuick = $("sideQuick"), sideFaq = $("sideFaq"), sideSearch = $("sideSearch"), sideEmpty = $("sideEmpty"), sideMode = $("sideMode");
   const btnPublic = $("btnPublic"), btnAgency = $("btnAgency"), modeDesc = $("modeDesc");
   const userName = $("userName"), btnLogout = $("btnLogout");
-  const loginMask = $("loginMask"), loginForm = $("loginForm"), loginUser = $("loginUser"),
-        loginPw = $("loginPw"), loginErr = $("loginErr"), loginSubmit = $("loginSubmit"),
-        loginCancel = $("loginCancel"), pwToggle = $("pwToggle");
+  const loginMask = $("loginMask"), loginErr = $("loginErr"), loginCancel = $("loginCancel"), loginWho = $("loginWho");
+  const gate = $("gate"), gateErr = $("gateErr");
+  let wantAgency = false;
 
   let role = "public";
   let busy = false;
@@ -1499,11 +1565,16 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
     btnAgency.setAttribute("aria-pressed", String(role === "agency"));
     btnAgency.textContent = (role === "agency" || isAuthed()) ? "🏛️ 機關/委辦人員" : "🔒 機關/委辦人員";
     modeDesc.textContent = role === "agency" ? "機關/委辦人員模式・法條引用" : "民眾／業者模式";
-    userName.textContent = isAuthed() ? `🔓 ${session.name}（已登入）` : "";
+    const signed = isSignedIn();
+    document.body.classList.toggle("signed", signed);
+    userName.innerHTML = signed
+      ? `${session.picture ? `<img class="g-avatar" src="${esc(session.picture)}" alt="" referrerpolicy="no-referrer"> ` : "🔓 "}${esc(session.name)}${session.staff ? `（${esc(session.unit)}）` : ""}`
+      : "";
+    userName.title = signed ? session.email : "";
     renderQuick();
     if(silent) return;
     addBot(role === "agency"
-      ? `已切換為 **機關/委辦人員模式**（${session.name}）。回覆將引用具體條、項、款；資料範圍與民眾模式相同，不另行延伸。可點上方「📊 使用統計」查看人次與熱區分析。`
+      ? `已切換為 **機關/委辦人員模式**（${session.unit || session.name}）。回覆將引用具體條、項、款；資料範圍與民眾模式相同，不另行延伸。可點上方「📊 使用統計」查看人次與熱區分析。`
       : "已切換為 **民眾／業者模式**。回覆將以白話說明需要準備什麼、何時申報及監測頻率。", [], true);
   }
 
@@ -1513,70 +1584,69 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
     else openLogin();
   }
 
-  /* ---------- 登入視窗 ---------- */
-  function lockRemainMs(){
-    const lk = store.get(LKEY);
-    return lk && lk.until > Date.now() ? lk.until - Date.now() : 0;
+  /* ---------- Google 登入流程 ---------- */
+  function showAuthError(msg){
+    if(loginMask.classList.contains("open")) loginErr.textContent = msg;
+    else gateErr.textContent = msg;
+  }
+  function updateGate(){
+    const need = GAUTH.REQUIRE_LOGIN && !isSignedIn();
+    gate.hidden = !need;
+    if(need){ gateErr.textContent = ""; renderGoogleButtons(); }
   }
   function openLogin(){
     lastFocus = document.activeElement;
+    wantAgency = true;
     loginErr.textContent = "";
-    loginPw.value = "";
+    if(isSignedIn() && !session.staff){
+      loginWho.hidden = false;
+      loginWho.textContent = `目前登入：${session.email}（未列入機關/委辦人員授權名單）。請改用授權之 Google 帳號登入。`;
+    }else loginWho.hidden = true;
     loginMask.classList.add("open");
-    const remain = lockRemainMs();
-    if(remain){ loginSubmit.disabled = true; loginErr.textContent = `嘗試次數過多，請於 ${Math.ceil(remain/60000)} 分鐘後再試。`; }
-    else loginSubmit.disabled = false;
-    setTimeout(()=> (loginUser.value ? loginPw : loginUser).focus(), 50);
+    renderGoogleButtons();
+    setTimeout(()=> $("loginX").focus(), 50);
   }
   function closeLogin(){
+    wantAgency = false;
     loginMask.classList.remove("open");
-    loginPw.value = "";
     if(lastFocus) lastFocus.focus();
   }
-
-  async function handleLogin(e){
-    e.preventDefault();
-    if(lockRemainMs()) return;
-    const norm = v => (v || "").normalize("NFKC").replace(/[\s\u200B-\u200D\uFEFF]/g, "");
-    const u = norm(loginUser.value).toLowerCase(), p = norm(loginPw.value);
-    if(!u || !p){ loginErr.textContent = "請輸入帳號及密碼。"; return; }
-    loginSubmit.disabled = true; loginSubmit.textContent = "驗證中…"; loginErr.textContent = "";
-    let result = null;
-    try{ result = await verifyLogin(u, p); }
-    catch(err){ console.error(err); loginErr.textContent = "無法連線至驗證伺服器，請稍後再試。"; }
-    loginSubmit.textContent = "登入";
-    if(result){
-      session = result; store.set(SKEY, session); store.del(LKEY);
-      if(ANALYTICS.MODE !== "server") Stats.track("login", { role: "agency", unit: session.name });
-      loginSubmit.disabled = false;
-      closeLogin();
-      applyRole("agency");
+  function completeSignIn(next){
+    const wasSigned = isSignedIn();
+    const asked = wantAgency;
+    if(asked && !next.staff){
+      loginErr.textContent = `${next.email} 未列入機關/委辦人員授權名單，無法切換為機關模式。`;
+      if(!isSignedIn()){ session = next; store.set(SKEY, session); updateGate(); applyRole("public", true); }
       return;
     }
-    if(loginErr.textContent) { loginSubmit.disabled = false; return; }
-    const lk = store.get(LKEY) || { count:0, until:0 };
-    lk.count += 1;
-    if(lk.count >= AUTH.MAX_ATTEMPTS){
-      lk.until = Date.now() + AUTH.LOCK_MINUTES*60000; lk.count = 0;
-      store.set(LKEY, lk);
-      loginErr.textContent = `連續錯誤 ${AUTH.MAX_ATTEMPTS} 次，已鎖定 ${AUTH.LOCK_MINUTES} 分鐘。`;
-      setTimeout(()=>{ loginSubmit.disabled = false; if(loginMask.classList.contains("open")) loginErr.textContent = ""; }, AUTH.LOCK_MINUTES*60000);
-      return;
+    session = next; store.set(SKEY, session);
+    // 匿名統計：機關/委辦人員僅記錄所屬單位；民眾不記錄姓名、Email
+    if(session.staff && ANALYTICS.MODE !== "server") Stats.track("login", { role: "agency", unit: session.unit });
+    if(loginMask.classList.contains("open")) closeLogin();
+    updateGate();
+    if(session.staff && asked){ applyRole("agency"); return; }
+    applyRole(role === "agency" && session.staff ? "agency" : "public", true);
+    if(!wasSigned){
+      addBot(session.staff
+        ? `已以 Google 帳號登入：**${session.name}**（${session.unit}，具機關/委辦人員權限）。可點上方「🔒 機關/委辦人員」切換為法條引用式回覆。`
+        : `已以 Google 帳號登入：**${session.name}**。歡迎使用，請直接輸入問題或點選快速提問。`, [], true);
     }
-    store.set(LKEY, lk);
-    loginErr.textContent = `帳號或密碼錯誤（剩餘 ${AUTH.MAX_ATTEMPTS - lk.count} 次）。`;
-    loginSubmit.disabled = false;
-    loginPw.value = ""; loginPw.focus();
   }
-
+  function requestAgency(){
+    if(role === "agency") return;
+    if(isAuthed()) applyRole("agency");
+    else openLogin();
+  }
   function forceLogout(msg){
     session = null; store.del(SKEY);
+    if(gReady()){ try{ google.accounts.id.disableAutoSelect(); }catch(e){} }
     closeStats();
     applyRole("public", true);
-    addBot(msg || "您已登出，已切換回 **民眾／業者模式**。", [], true);
+    updateGate();
+    addBot(msg || "您已登出 Google 帳號。", [], true);
   }
 
-  setInterval(()=>{ if(role === "agency" && !isAuthed()) forceLogout("登入時間已逾時，已自動登出並切換回 **民眾／業者模式**。"); }, 60000);
+  setInterval(()=>{ if(session && !isSignedIn()) forceLogout("登入時間已逾時，已自動登出，請重新以 Google 帳號登入。"); }, 60000);
 
   /* =========================================================
      9. 使用統計儀表板
@@ -1775,6 +1845,7 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
   async function ask(text){
     const q = text.trim();
     if(!q || busy) return;
+    if(GAUTH.REQUIRE_LOGIN && !isSignedIn()){ updateGate(); return; }
     if(role === "agency" && !isAuthed()){ forceLogout("登入時間已逾時，請重新登入。"); return; }
     busy = true; send.disabled = true;
     addUser(q);
@@ -1843,8 +1914,9 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
   sourcesMask.addEventListener("click", e=>{ if(e.target === sourcesMask) closeDoc(sourcesMask); });
   optOut.addEventListener("change", ()=>{ try{ localStorage.setItem("stge_privacy_optout", optOut.checked ? "1" : "0"); }catch(e){} });
 
-  loginForm.addEventListener("submit", handleLogin);
   loginCancel.addEventListener("click", closeLogin);
+  $("loginX").addEventListener("click", closeLogin);
+  document.addEventListener("click", e=>{ const b = e.target.closest("[data-demo]"); if(b) demoSignIn(b.dataset.demo); });
   loginMask.addEventListener("click", e=>{ if(e.target === loginMask) closeLogin(); });
   document.addEventListener("keydown", e=>{
     if(e.key !== "Escape") return;
@@ -1852,12 +1924,6 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
     else if(sourcesMask.classList.contains("open")) closeDoc(sourcesMask);
     else if(statsMask.classList.contains("open")) closeStats();
     else if(loginMask.classList.contains("open")) closeLogin();
-  });
-  pwToggle.addEventListener("click", ()=>{
-    const show = loginPw.type === "password";
-    loginPw.type = show ? "text" : "password";
-    pwToggle.textContent = show ? "隱藏" : "顯示";
-    pwToggle.setAttribute("aria-label", show ? "隱藏密碼" : "顯示密碼");
   });
   form.addEventListener("submit", e=>{ e.preventDefault(); ask(input.value); });
   input.addEventListener("input", autoGrow);
@@ -1870,13 +1936,15 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
   renderSources();
   renderSideFaq();
   applyRole("public", true);
+  updateGate();
+  initGoogle();
   addBot(
 `您好！我是 **貯存系統 AI 法規客服** 👋
 本客服**僅依資料來源清單所列 ${SOURCE_COUNT} 項文件**回答（申報中心收錄之法規、檢測方法、SOP、參考指引，以及 **${FAQ.length} 題常見問題官方答覆**），清單以外之資料一律不回答、不自行延伸。
 
 - 點選「📋 常見問題總覽」（手機在下方、電腦在右側欄）可瀏覽全部題目
 - 是否違規、如何處分等個案判定，請洽轄區環保局
-- 🔒 **機關/委辦人員** 模式（法條引用式回覆、使用統計）需登入授權帳號後使用
+- 🔒 **機關/委辦人員** 模式（法條引用式回覆、使用統計）需以授權之 Google 帳號登入後使用
 
 📞 諮詢電話
 ${CONTACT_MD}`, [], true);

@@ -447,7 +447,7 @@
       <h3>三、蒐集項目（均為匿名資料）</h3>
       <table class="ptable">
         <tr><th>對象</th><th>記錄內容</th><th>不記錄</th></tr>
-        <tr><td>民眾／業者</td><td>進站時間、提問內容（自動遮蔽電話、身分證字號、Email、管制編號）、系統判定之提問主題及類別</td><td rowspan="2">姓名、電話、地址、IP 位址、裝置識別碼、定位資訊</td></tr>
+        <tr><td>民眾／業者</td><td>進站時間、Google 登入時間（不含姓名、Email）、提問內容（自動遮蔽電話、身分證字號、Email、管制編號）、系統判定之提問主題及類別</td><td rowspan="2">姓名、電話、地址、IP 位址、裝置識別碼、定位資訊</td></tr>
         <tr><td>機關/委辦人員</td><td>登入時間、所屬單位名稱、提問內容及主題</td></tr>
       </table>
       <p class="small"><strong>Google 帳號登入：</strong>本網站僅接收 Google 回傳之姓名、Email 及大頭貼，用於顯示登入狀態及判定是否為機關/委辦人員授權帳號；上述資料僅暫存於您的瀏覽器分頁，關閉分頁或登出即清除，<strong>不寫入使用統計紀錄</strong>，亦不會取得您的 Google 密碼。</p>
@@ -465,7 +465,7 @@
       <p>您可選擇不提供提問內容，<strong>不影響</strong>任何查詢功能；系統將僅統計提問次數。</p>
       <label class="optout"><input type="checkbox" id="optOut"> 我不同意提供提問內容（僅統計次數）</label>
       <h3>七、資訊安全措施</h3>
-      <p>正式上線時，資料以加密連線（HTTPS）傳輸並存放於受管控之伺服器；統計頁限授權帳號登入檢視，檢視及匯出行為留存稽核紀錄。</p>
+      <p>資料以加密連線（HTTPS）傳輸，集中存放於維護單位管理之 Google 試算表，僅授權人員可開啟；統計頁限授權帳號登入檢視，檢視及匯出行為留存稽核紀錄。</p>
       <h3>八、聯絡窗口</h3>
       <p>屏東縣政府環境保護局 <a href="tel:+88687351922">(08)735-1922#OOO</a>　／　屏東縣委辦公司諮詢 <a href="tel:+88673232753">(07)323-2753#OOO</a></p>
       <div class="modal-actions" style="margin-top:14px"><button type="button" class="btn-login green" id="privacyOk">我已了解</button></div>
@@ -600,19 +600,20 @@
   };
 
   /* 使用統計設定
-     MODE："local"：展示用，紀錄存於本瀏覽器 localStorage
-           "server"：正式用，事件送至後端集中彙整；儀表板向後端取得全站資料 */
+     MODE："local"：展示用，紀錄只存在本瀏覽器 localStorage
+           "server"：正式用，事件送至 Google Apps Script（Google 試算表）集中彙整
+     ENDPOINT：Google Apps Script 部署後的「網頁應用程式網址」（…/exec）
+     ※ ENDPOINT 尚未設定時，自動改回 local 模式 */
   const ANALYTICS = {
-    MODE: "local",
-    ENDPOINT: "/api/track",
-    STATS_ENDPOINT: "/api/stats/events",
-    EXPORT_ENDPOINT: "/api/stats/export.csv",
+    MODE: "server",
+    ENDPOINT: "https://script.google.com/macros/s/AKfycbwbo3otukhDdFQfmBEwx0lcf2DXJRZhis00cl9iM53GkDVU91p2yF3rqNHj7mlh7Sme/exec",
     KEY: "stge_analytics_v1",
     MAX_EVENTS: 20000,
     RETENTION_DAYS: 730,          // 使用紀錄保存 2 年
     Q_RETENTION_DAYS: 365,        // 提問文字保存 1 年，逾期僅保留主題分類
     PRIVACY_VER: "2026-11"
   };
+  if(ANALYTICS.MODE === "server" && !/^https:\/\/script\.google(usercontent)?\.com\//.test(ANALYTICS.ENDPOINT)) ANALYTICS.MODE = "local";
 
   const URL = {
     RULES: CONFIG.RULES_URL,
@@ -1337,9 +1338,10 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
       const ev = Object.assign({ type, t: Date.now(), sid: SID }, data || {});
       if(ev.q !== undefined){ ev.q = privacyOptOut() ? "" : maskPII(ev.q).slice(0, 200); }
       if(ANALYTICS.MODE === "server"){
-        const headers = { "Content-Type":"application/json" };
-        if(ev.role === "agency" && session && session.token) headers.Authorization = "Bearer " + session.token;
-        try{ fetch(ANALYTICS.ENDPOINT, { method:"POST", headers, body: JSON.stringify(ev), keepalive:true }).catch(()=>{}); }catch(e){}
+        try{
+          fetch(ANALYTICS.ENDPOINT, { method:"POST", body: JSON.stringify(ev), keepalive:true,
+            headers:{ "Content-Type":"text/plain;charset=utf-8" } }).catch(()=>{});
+        }catch(e){}
         return;
       }
       const list = this.load();
@@ -1349,11 +1351,17 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
     },
     async fetchAll(since){
       if(ANALYTICS.MODE === "server"){
-        const headers = session && session.token ? { Authorization: "Bearer " + session.token } : {};
-        const res = await fetch(`${ANALYTICS.STATS_ENDPOINT}?from=${since||0}&to=${Date.now()+60000}`, { headers });
-        if(res.status === 401){ forceLogout("登入已失效，請重新登入。"); throw new Error("登入已失效"); }
-        if(!res.ok) throw new Error("統計資料讀取失敗：" + res.status);
-        const data = await res.json();
+        if(!session || !session.token) throw new Error("全站統計須以實際授權之 Google 帳號登入後檢視（展示帳號無法讀取）。");
+        const url = `${ANALYTICS.ENDPOINT}?action=events&from=${since||0}&to=${Date.now()+60000}&token=${encodeURIComponent(session.token)}`;
+        let data;
+        try{ data = await (await fetch(url)).json(); }
+        catch(e){ throw new Error("無法連線至統計資料庫，請稍後再試。"); }
+        if(!data.ok){
+          const msg = { token_expired:"Google 登入憑證已逾 1 小時，請登出後重新登入再檢視統計。",
+                        forbidden:"此 Google 帳號未列入統計檢視授權名單。",
+                        invalid_token:"登入憑證無效，請重新登入。" }[data.error];
+          throw new Error(msg || ("統計資料讀取失敗：" + (data.error || "未知錯誤")));
+        }
         this.lastTotal = data.total;
         return data.events;
       }
@@ -1621,7 +1629,7 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
     }
     session = next; store.set(SKEY, session);
     // 匿名統計：機關/委辦人員僅記錄所屬單位；民眾不記錄姓名、Email
-    if(session.staff && ANALYTICS.MODE !== "server") Stats.track("login", { role: "agency", unit: session.unit });
+    if(!wasSigned || session.staff) Stats.track("login", session.staff ? { role: "agency", unit: session.unit } : { role: "public" });
     if(loginMask.classList.contains("open")) closeLogin();
     updateGate();
     if(session.staff && asked){ applyRole("agency"); return; }
@@ -1682,7 +1690,8 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
     catch(err){ statsBody.innerHTML = `<p class="empty">${esc(err.message)}</p>`; return; }
     const ev = all.filter(e => e.t >= since && e.t <= nowT + 60000);
     const visits = ev.filter(e=>e.type==="visit");
-    const logins = ev.filter(e=>e.type==="login");
+    const logins = ev.filter(e=>e.type==="login" && e.role==="agency");
+    const pubLogins = ev.filter(e=>e.type==="login" && e.role!=="agency");
     const qs     = ev.filter(e=>e.type==="question");
     const qPub = qs.filter(e=>e.role!=="agency").length, qGov = qs.length - qPub;
     const none = qs.filter(e=>e.cat==="查無依據");
@@ -1690,6 +1699,7 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
 
     let html = `<div class="kpis">
       <div class="kpi pub"><div class="v">${visits.length}</div><div class="l">👤 民眾／業者 進站人次</div></div>
+      <div class="kpi pub"><div class="v">${pubLogins.length}</div><div class="l">🔑 民眾／業者 Google 登入人次</div></div>
       <div class="kpi"><div class="v">${logins.length}</div><div class="l">🏛️ 承辦／委辦 登入人次</div></div>
       <div class="kpi"><div class="v">${qs.length}</div><div class="l">💬 總提問數（民眾 ${qPub}／機關 ${qGov}）</div></div>
       <div class="kpi"><div class="v">${visits.length ? (qPub/visits.length).toFixed(1) : 0}</div><div class="l">📈 民眾平均每人次提問數</div></div>
@@ -1762,16 +1772,10 @@ ${OUT_OF_SCOPE.map((s, i) => `${i + 1}. ${s}`).join("\n")}
   }
 
   async function exportCsv(){
+    let all;
     if(ANALYTICS.MODE === "server"){
-      const res = await fetch(ANALYTICS.EXPORT_ENDPOINT, { headers: { Authorization: "Bearer " + (session && session.token) } });
-      if(!res.ok){ alert("匯出失敗：" + res.status); return; }
-      const a = document.createElement("a");
-      a.href = window.URL.createObjectURL(await res.blob());
-      a.download = "貯存系統AI客服_使用紀錄.csv";
-      document.body.appendChild(a); a.click(); a.remove();
-      return;
-    }
-    const all = Stats.load();
+      try{ all = await Stats.fetchAll(0); }catch(err){ alert(err.message); return; }
+    }else all = Stats.load();
     const typeName = { visit:"進站", login:"登入", question:"提問" };
     const rows = [["時間","事件類型","身分","單位","提問內容（已遮蔽個資）","命中主題","類別"]];
     all.forEach(e=>{
